@@ -1,0 +1,1 @@
+{\n  \"name\": \"extreme-fabric-dashboard\",\n  \"version\": \"1.0.0\",\n  \"description\": \"Extreme Campus Fabric Visibility Dashboard\",\n  \"main\": \"server.js\",\n  \"scripts\": {\n    \"start\": \"node server.js\"\n  },\n  \"dependencies\": {\n    \"express\": \"^4.18.2\"\n  }\n}\n
