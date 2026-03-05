@@ -93,6 +93,30 @@ def login():
     return jsonify({'ok': True})
 
 
+@app.route('/api/set-token', methods=['POST'])
+def set_token():
+    data = request.get_json() or {}
+    token = data.get('token', '').strip()
+    # Strip "Bearer " prefix if the user copied the full header value
+    if token.lower().startswith('bearer '):
+        token = token[7:].strip()
+    if not token:
+        return jsonify({'error': 'Token is required'}), 400
+    # Validate the token against XIQ before accepting it
+    try:
+        resp = req.get(
+            f'{XIQ_BASE}/account/home-accounts',
+            headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+            timeout=15
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 502
+    if resp.status_code == 401:
+        return jsonify({'error': 'Token is invalid or expired'}), 401
+    session['xiq_token'] = token
+    return jsonify({'ok': True})
+
+
 @app.route('/api/logout', methods=['POST'])
 def logout():
     session.pop('xiq_token', None)
