@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Extreme Campus Fabric Visibility Dashboard</title>
+<script>
+  (function() {
+    var t = localStorage.getItem('theme');
+    if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  })();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   :root {
@@ -11,88 +17,105 @@
     --text: #e6edf3; --text-muted: #8b949e;
     --green: #3fb950; --yellow: #d29922; --red: #f85149;
     --blue: #58a6ff; --purple: #bc8cff; --orange: #ffa657;
+    --chart-grid: #21262d; --chart-tick: #8b949e;
+    --shadow: rgba(0,0,0,0.5); --sidebar-width: 210px;
+  }
+  [data-theme="light"] {
+    --bg: #f6f8fa; --surface: #ffffff; --surface2: #f0f2f5; --border: #d0d7de;
+    --text: #24292f; --text-muted: #57606a;
+    --green: #1a7f37; --yellow: #9a6700; --red: #cf222e;
+    --blue: #0969da; --purple: #8250df; --orange: #bc4c00;
+    --chart-grid: #e8ecf0; --chart-tick: #57606a;
+    --shadow: rgba(0,0,0,0.15);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; }
-
-  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; }
-  header h1 { font-size: 16px; font-weight: 600; color: var(--blue); letter-spacing: 0.5px; }
+  html, body { height: 100%; overflow: hidden; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; display: flex; flex-direction: column; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  header h1 { font-size: 15px; font-weight: 600; color: var(--blue); letter-spacing: 0.5px; }
   .header-right { display: flex; align-items: center; gap: 12px; }
-  .live-badge { background: #1a3a1a; border: 1px solid var(--green); color: var(--green); border-radius: 12px; padding: 2px 10px; font-size: 11px; display: flex; align-items: center; gap: 5px; }
+  .live-badge { border: 1px solid var(--green); color: var(--green); border-radius: 12px; padding: 2px 10px; font-size: 11px; display: flex; align-items: center; gap: 5px; }
   .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
   .timestamp { color: var(--text-muted); font-size: 11px; }
-
-  #alert-banner { background: #2a1215; border-bottom: 1px solid #6e2a2a; padding: 8px 20px; display: flex; gap: 16px; flex-wrap: wrap; }
+  #alert-banner { background: #2a1215; border-bottom: 1px solid #6e2a2a; padding: 7px 20px; display: flex; gap: 16px; flex-wrap: wrap; flex-shrink: 0; }
+  [data-theme="light"] #alert-banner { background: #fff0f0; border-bottom-color: #f5c2c2; }
   .alert-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
   .alert-item .icon { color: var(--red); }
   .alert-warn .icon { color: var(--yellow); }
-
-  .tabs { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; padding: 0 20px; }
-  .tab { padding: 10px 16px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--text-muted); font-size: 13px; transition: all 0.2s; user-select: none; }
-  .tab:hover { color: var(--text); }
-  .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
-
-  main { padding: 16px 20px; }
+  .app-body { display: flex; flex: 1; overflow: hidden; }
+  #sidebar { width: var(--sidebar-width); flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
+  .sidebar-brand { padding: 14px 16px 13px; font-size: 12px; font-weight: 700; color: var(--blue); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .sidebar-brand-icon { font-size: 15px; }
+  .nav-section { padding: 8px 0 4px; }
+  .nav-section-label { padding: 0 16px 5px; font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+  .nav-tab { display: flex; align-items: center; gap: 10px; padding: 9px 16px; cursor: pointer; color: var(--text-muted); font-size: 13px; border-left: 3px solid transparent; transition: all 0.15s; user-select: none; }
+  .nav-tab:hover { background: var(--surface2); color: var(--text); }
+  .nav-tab.active { background: var(--surface2); color: var(--blue); border-left-color: var(--blue); font-weight: 500; }
+  .nav-icon { font-size: 12px; width: 18px; text-align: center; flex-shrink: 0; }
+  .sidebar-footer { margin-top: auto; border-top: 1px solid var(--border); padding: 14px 16px; }
+  .sidebar-footer-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 12px; color: var(--text-muted); }
+  .settings-row span { display: flex; align-items: center; gap: 6px; }
+  .toggle-switch { position: relative; width: 38px; height: 20px; flex-shrink: 0; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 20px; cursor: pointer; transition: background 0.2s; }
+  .toggle-slider:before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  input:checked + .toggle-slider { background: var(--blue); }
+  input:checked + .toggle-slider:before { transform: translateX(18px); }
+  main { flex: 1; overflow-y: auto; padding: 16px 20px; background: var(--bg); }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
-
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
   .card-title { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
-
   .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
   .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-
   .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
   .stat-value { font-size: 28px; font-weight: 700; }
   .stat-label { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
   .stat-sub { font-size: 11px; margin-top: 6px; }
   .up { color: var(--green); } .down { color: var(--red); } .warn { color: var(--yellow); }
-
   #topology-container { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; position: relative; overflow: hidden; margin-bottom: 16px; }
   #topology-svg { width: 100%; height: 480px; }
-  .topo-legend { position: absolute; top: 12px; right: 12px; background: rgba(13,17,23,0.9); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; font-size: 11px; }
+  .topo-legend { position: absolute; top: 12px; right: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; font-size: 11px; box-shadow: 0 2px 8px var(--shadow); }
   .legend-item { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
   .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   .legend-line { width: 20px; height: 3px; border-radius: 2px; flex-shrink: 0; }
-
-  #detail-panel { display: none; position: fixed; right: 0; top: 0; bottom: 0; width: 380px; background: var(--surface); border-left: 1px solid var(--border); z-index: 100; overflow-y: auto; padding: 16px; box-shadow: -4px 0 20px rgba(0,0,0,0.5); }
+  #detail-panel { display: none; position: fixed; right: 0; top: 0; bottom: 0; width: 380px; background: var(--surface); border-left: 1px solid var(--border); z-index: 100; overflow-y: auto; padding: 16px; box-shadow: -4px 0 20px var(--shadow); }
   #detail-panel.open { display: block; }
   .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
   .panel-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; line-height: 1; }
   .panel-close:hover { color: var(--text); }
   .detail-section { margin-bottom: 16px; }
   .detail-section h4 { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
-
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
   th { color: var(--text-muted); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; font-size: 11px; }
   td { padding: 6px 8px; border-bottom: 1px solid var(--border); color: var(--text); }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: var(--surface2); }
-
   .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; }
-  .badge-green  { background: #1a3a1a; color: var(--green);  border: 1px solid #2d5a2d; }
-  .badge-red    { background: #2a1215; color: var(--red);    border: 1px solid #6e2a2a; }
-  .badge-yellow { background: #2a2010; color: var(--yellow); border: 1px solid #5a4510; }
-  .badge-blue   { background: #0d2040; color: var(--blue);   border: 1px solid #1a4080; }
-  .badge-purple { background: #1e1040; color: var(--purple); border: 1px solid #4a2a80; }
-
+  .badge-green  { background: #1a3a1a; color: #3fb950; border: 1px solid #2d5a2d; }
+  .badge-red    { background: #2a1215; color: #f85149; border: 1px solid #6e2a2a; }
+  .badge-yellow { background: #2a2010; color: #d29922; border: 1px solid #5a4510; }
+  .badge-blue   { background: #0d2040; color: #58a6ff; border: 1px solid #1a4080; }
+  .badge-purple { background: #1e1040; color: #bc8cff; border: 1px solid #4a2a80; }
+  [data-theme="light"] .badge-green  { background: #dcfce7; color: #1a7f37; border-color: #86efac; }
+  [data-theme="light"] .badge-red    { background: #fee2e2; color: #cf222e; border-color: #fca5a5; }
+  [data-theme="light"] .badge-yellow { background: #fef9c3; color: #9a6700; border-color: #fde047; }
+  [data-theme="light"] .badge-blue   { background: #dbeafe; color: #0969da; border-color: #93c5fd; }
+  [data-theme="light"] .badge-purple { background: #ede9fe; color: #8250df; border-color: #c4b5fd; }
   .progress-bar  { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; display: inline-block; width: 60px; vertical-align: middle; margin-right: 4px; }
   .progress-fill { height: 100%; border-radius: 2px; }
-
   .search-bar { display: flex; gap: 8px; margin-bottom: 12px; }
   .search-bar input, .search-bar select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 6px 10px; font-size: 12px; }
   .search-bar input { flex: 1; }
   .search-bar input:focus, .search-bar select:focus { outline: none; border-color: var(--blue); }
-
   .chart-wrap    { position: relative; height: 200px; }
   .chart-wrap-lg { position: relative; height: 240px; }
-
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: var(--surface); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
   .adj-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); }
   .adj-row:last-child { border-bottom: none; }
   .change-entry { padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 11px; }
@@ -112,99 +135,103 @@
 
 <div id="alert-banner"></div>
 
-<div class="tabs">
-  <div class="tab active"  onclick="switchTab('topology')">&#9654; Fabric Topology</div>
-  <div class="tab"         onclick="switchTab('health')">&#9650; Fabric Health</div>
-  <div class="tab"         onclick="switchTab('services')">&#9632; Service Segmentation</div>
-  <div class="tab"         onclick="switchTab('analytics')">&#9642; Performance Analytics</div>
-</div>
-
-<main>
-
-<!-- TOPOLOGY -->
-<div id="tab-topology" class="tab-content active">
-  <div class="grid-4">
-    <div class="stat-card"><div class="stat-value up"   id="s-nodes-up">-</div><div class="stat-label">Nodes Online</div><div class="stat-sub" id="s-nodes-total"></div></div>
-    <div class="stat-card"><div class="stat-value up"   id="s-links-up">-</div><div class="stat-label">Links Up</div><div class="stat-sub" id="s-links-total"></div></div>
-    <div class="stat-card"><div class="stat-value"      id="s-isis">-</div><div class="stat-label">IS-IS Adjacencies</div><div class="stat-sub">Active</div></div>
-    <div class="stat-card"><div class="stat-value warn" id="s-alerts">-</div><div class="stat-label">Active Alerts</div><div class="stat-sub">Require attention</div></div>
-  </div>
-  <div id="topology-container">
-    <svg id="topology-svg"></svg>
-    <div class="topo-legend">
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;font-weight:600">NODE ROLE</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#bc8cff"></span> Core</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#58a6ff"></span> Distribution</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#3fb950"></span> Edge</div>
-      <div style="font-size:11px;color:var(--text-muted);margin:8px 0 6px;font-weight:600">LINK UTIL</div>
-      <div class="legend-item"><span class="legend-line" style="background:#3fb950"></span> &lt;60%</div>
-      <div class="legend-item"><span class="legend-line" style="background:#d29922"></span> 60-80%</div>
-      <div class="legend-item"><span class="legend-line" style="background:#f85149"></span> &gt;80%</div>
-      <div class="legend-item"><span class="legend-line" style="background:#f85149;opacity:0.5"></span> Down</div>
+<div class="app-body">
+  <nav id="sidebar">
+    <div class="sidebar-brand"><span class="sidebar-brand-icon">&#9670;</span> ExtremeNetworks</div>
+    <div class="nav-section">
+      <div class="nav-section-label">Views</div>
+      <div class="nav-tab active" onclick="switchTab('topology')"><span class="nav-icon">&#9654;</span> Fabric Topology</div>
+      <div class="nav-tab" onclick="switchTab('health')"><span class="nav-icon">&#9650;</span> Fabric Health</div>
+      <div class="nav-tab" onclick="switchTab('services')"><span class="nav-icon">&#9632;</span> Service Segmentation</div>
+      <div class="nav-tab" onclick="switchTab('analytics')"><span class="nav-icon">&#9642;</span> Performance Analytics</div>
     </div>
-  </div>
-  <p style="color:var(--text-muted);font-size:11px;text-align:center;margin-top:-10px">Click any node to view details &bull; Updates every 5 seconds</p>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-label">Preferences</div>
+      <div class="settings-row">
+        <span>&#9790; Dark Mode</span>
+        <label class="toggle-switch"><input type="checkbox" id="dark-toggle" checked onchange="toggleTheme()"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="settings-row">
+        <span>&#8635; Auto-refresh</span>
+        <label class="toggle-switch"><input type="checkbox" id="refresh-toggle" checked onchange="toggleRefresh()"><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div id="tab-topology" class="tab-content active">
+      <div class="grid-4">
+        <div class="stat-card"><div class="stat-value up" id="s-nodes-up">-</div><div class="stat-label">Nodes Online</div><div class="stat-sub" id="s-nodes-total"></div></div>
+        <div class="stat-card"><div class="stat-value up" id="s-links-up">-</div><div class="stat-label">Links Up</div><div class="stat-sub" id="s-links-total"></div></div>
+        <div class="stat-card"><div class="stat-value" id="s-isis">-</div><div class="stat-label">IS-IS Adjacencies</div><div class="stat-sub">Active</div></div>
+        <div class="stat-card"><div class="stat-value warn" id="s-alerts">-</div><div class="stat-label">Active Alerts</div><div class="stat-sub">Require attention</div></div>
+      </div>
+      <div id="topology-container">
+        <svg id="topology-svg"></svg>
+        <div class="topo-legend">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;font-weight:600">NODE ROLE</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#bc8cff"></span> Core</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#58a6ff"></span> Distribution</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#3fb950"></span> Edge</div>
+          <div style="font-size:11px;color:var(--text-muted);margin:8px 0 6px;font-weight:600">LINK UTIL</div>
+          <div class="legend-item"><span class="legend-line" style="background:#3fb950"></span> &lt;60%</div>
+          <div class="legend-item"><span class="legend-line" style="background:#d29922"></span> 60-80%</div>
+          <div class="legend-item"><span class="legend-line" style="background:#f85149"></span> &gt;80%</div>
+          <div class="legend-item"><span class="legend-line" style="background:#f85149;opacity:0.5"></span> Down</div>
+        </div>
+      </div>
+      <p style="color:var(--text-muted);font-size:11px;text-align:center;margin-top:-10px">Click any node to view details &bull; Updates every 5 seconds</p>
+    </div>
+
+    <div id="tab-health" class="tab-content">
+      <div class="grid-4" style="margin-bottom:16px">
+        <div class="stat-card"><div class="stat-value up" id="h-isis">-</div><div class="stat-label">IS-IS Adjacencies</div><div class="stat-sub up">All stable</div></div>
+        <div class="stat-card"><div class="stat-value" id="h-conv">18ms</div><div class="stat-label">Avg Convergence</div><div class="stat-sub">milliseconds</div></div>
+        <div class="stat-card"><div class="stat-value warn" id="h-bum">124</div><div class="stat-label">BUM Traffic</div><div class="stat-sub">Mbps aggregate</div></div>
+        <div class="stat-card"><div class="stat-value down" id="h-alerts">-</div><div class="stat-label">Health Alerts</div><div class="stat-sub">Active</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">CPU Utilization by Node</div><div class="chart-wrap"><canvas id="chart-cpu"></canvas></div></div>
+        <div class="card"><div class="card-title">Memory Utilization by Node</div><div class="chart-wrap"><canvas id="chart-mem"></canvas></div></div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">IS-IS Adjacency Status per Node</div>
+        <table><thead><tr><th>Node</th><th>Role</th><th>Adj</th><th>Status</th><th>Last Change</th><th>CPU %</th><th>Mem %</th></tr></thead><tbody id="health-table"></tbody></table>
+      </div>
+      <div class="card"><div class="card-title">BUM Traffic Trend (24h)</div><div class="chart-wrap-lg"><canvas id="chart-bum"></canvas></div></div>
+    </div>
+
+    <div id="tab-services" class="tab-content">
+      <div class="search-bar">
+        <input type="text" id="svc-search" placeholder="Search I-SID, name, tenant, VRF..." oninput="filterServices()">
+        <select id="svc-role" onchange="filterServices()"><option value="">All Roles</option><option>Core</option><option>Distribution</option><option>Edge</option></select>
+        <select id="svc-tenant" onchange="filterServices()"><option value="">All Tenants</option></select>
+        <select id="svc-type" onchange="filterServices()"><option value="">All Types</option><option>L2VSN</option><option>L3VSN</option><option>Multicast</option></select>
+      </div>
+      <div class="grid-3" style="margin-bottom:16px">
+        <div class="stat-card"><div class="stat-value" style="color:var(--blue)" id="s-isids">-</div><div class="stat-label">Active I-SIDs</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--purple)" id="s-vrfs">-</div><div class="stat-label">Active VRFs</div></div>
+        <div class="stat-card"><div class="stat-value" id="s-mcast">-</div><div class="stat-label">Multicast Services</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Service / Tenant Breakdown</div>
+        <table><thead><tr><th>I-SID</th><th>Name</th><th>Type</th><th>Tenant</th><th>VRF</th><th>Nodes</th><th>Status</th></tr></thead><tbody id="svc-table"></tbody></table>
+      </div>
+    </div>
+
+    <div id="tab-analytics" class="tab-content">
+      <div class="grid-2" style="margin-bottom:16px">
+        <div class="card"><div class="card-title">Bandwidth Trends &mdash; 7 Days</div><div class="chart-wrap-lg"><canvas id="chart-bw"></canvas></div></div>
+        <div class="card"><div class="card-title">East-West vs North-South</div><div class="chart-wrap-lg"><canvas id="chart-ewns"></canvas></div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><div class="card-title">Top 10 Uplinks by Utilization</div><div class="chart-wrap-lg"><canvas id="chart-uplinks"></canvas></div></div>
+        <div class="card"><div class="card-title">Error &amp; Discard Rate Trends</div><div class="chart-wrap-lg"><canvas id="chart-errors"></canvas></div></div>
+      </div>
+    </div>
+  </main>
 </div>
 
-<!-- HEALTH -->
-<div id="tab-health" class="tab-content">
-  <div class="grid-4" style="margin-bottom:16px">
-    <div class="stat-card"><div class="stat-value up"   id="h-isis">-</div><div class="stat-label">IS-IS Adjacencies</div><div class="stat-sub up">All stable</div></div>
-    <div class="stat-card"><div class="stat-value"      id="h-conv">18ms</div><div class="stat-label">Avg Convergence</div><div class="stat-sub">milliseconds</div></div>
-    <div class="stat-card"><div class="stat-value warn" id="h-bum">124</div><div class="stat-label">BUM Traffic</div><div class="stat-sub">Mbps aggregate</div></div>
-    <div class="stat-card"><div class="stat-value down" id="h-alerts">-</div><div class="stat-label">Health Alerts</div><div class="stat-sub">Active</div></div>
-  </div>
-  <div class="grid-2">
-    <div class="card"><div class="card-title">CPU Utilization by Node</div><div class="chart-wrap"><canvas id="chart-cpu"></canvas></div></div>
-    <div class="card"><div class="card-title">Memory Utilization by Node</div><div class="chart-wrap"><canvas id="chart-mem"></canvas></div></div>
-  </div>
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-title">IS-IS Adjacency Status per Node</div>
-    <table>
-      <thead><tr><th>Node</th><th>Role</th><th>Adj</th><th>Status</th><th>Last Change</th><th>CPU %</th><th>Mem %</th></tr></thead>
-      <tbody id="health-table"></tbody>
-    </table>
-  </div>
-  <div class="card"><div class="card-title">BUM Traffic Trend (24h)</div><div class="chart-wrap-lg"><canvas id="chart-bum"></canvas></div></div>
-</div>
-
-<!-- SERVICES -->
-<div id="tab-services" class="tab-content">
-  <div class="search-bar">
-    <input type="text" id="svc-search" placeholder="Search I-SID, name, tenant, VRF..." oninput="filterServices()">
-    <select id="svc-role"   onchange="filterServices()"><option value="">All Roles</option><option>Core</option><option>Distribution</option><option>Edge</option></select>
-    <select id="svc-tenant" onchange="filterServices()"><option value="">All Tenants</option></select>
-    <select id="svc-type"   onchange="filterServices()"><option value="">All Types</option><option>L2VSN</option><option>L3VSN</option><option>Multicast</option></select>
-  </div>
-  <div class="grid-3" style="margin-bottom:16px">
-    <div class="stat-card"><div class="stat-value" style="color:var(--blue)"   id="s-isids">-</div><div class="stat-label">Active I-SIDs</div></div>
-    <div class="stat-card"><div class="stat-value" style="color:var(--purple)" id="s-vrfs">-</div><div class="stat-label">Active VRFs</div></div>
-    <div class="stat-card"><div class="stat-value" id="s-mcast">-</div><div class="stat-label">Multicast Services</div></div>
-  </div>
-  <div class="card">
-    <div class="card-title">Service / Tenant Breakdown</div>
-    <table>
-      <thead><tr><th>I-SID</th><th>Name</th><th>Type</th><th>Tenant</th><th>VRF</th><th>Nodes</th><th>Status</th></tr></thead>
-      <tbody id="svc-table"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- ANALYTICS -->
-<div id="tab-analytics" class="tab-content">
-  <div class="grid-2" style="margin-bottom:16px">
-    <div class="card"><div class="card-title">Bandwidth Trends &mdash; 7 Days</div><div class="chart-wrap-lg"><canvas id="chart-bw"></canvas></div></div>
-    <div class="card"><div class="card-title">East-West vs North-South</div><div class="chart-wrap-lg"><canvas id="chart-ewns"></canvas></div></div>
-  </div>
-  <div class="grid-2">
-    <div class="card"><div class="card-title">Top 10 Uplinks by Utilization</div><div class="chart-wrap-lg"><canvas id="chart-uplinks"></canvas></div></div>
-    <div class="card"><div class="card-title">Error &amp; Discard Rate Trends</div><div class="chart-wrap-lg"><canvas id="chart-errors"></canvas></div></div>
-  </div>
-</div>
-
-</main>
-
-<!-- NODE DETAIL PANEL -->
 <div id="detail-panel">
   <div class="panel-header">
     <h3 id="panel-title" style="font-size:15px;color:var(--blue)">Node Details</h3>
@@ -214,401 +241,241 @@
 </div>
 
 <script>
-// ==================== MOCK DATA ====================
-const NODES = [
-  {id:'core-1',  hostname:'XA-CORE-01',  role:'Core',         ip:'10.1.0.1',  cpu:42, mem:58, isis_adj:6, status:'up',   model:'VSP 8400', uptime:'234d 6h',
-   interfaces:[{name:'1/1',speed:'100G',util:72,status:'up'},{name:'1/2',speed:'100G',util:65,status:'up'},{name:'1/3',speed:'100G',util:31,status:'up'},{name:'1/4',speed:'100G',util:88,status:'up'}],
-   top_talkers:[{src:'10.10.1.55',dst:'10.20.2.10',proto:'TCP',mbps:4.2},{src:'10.10.3.22',dst:'10.30.1.5',proto:'UDP',mbps:3.1}],
-   config_changes:[{time:'2026-03-04 08:12',user:'netadmin',change:'Added IS-IS auth key on port 1/4'},{time:'2026-03-03 14:55',user:'netadmin',change:'Updated BFD timer on core links'}]},
-  {id:'core-2',  hostname:'XA-CORE-02',  role:'Core',         ip:'10.1.0.2',  cpu:38, mem:52, isis_adj:6, status:'up',   model:'VSP 8400', uptime:'234d 5h',
-   interfaces:[{name:'1/1',speed:'100G',util:68,status:'up'},{name:'1/2',speed:'100G',util:71,status:'up'},{name:'1/3',speed:'100G',util:29,status:'up'},{name:'1/4',speed:'100G',util:14,status:'down'}],
-   top_talkers:[{src:'10.30.1.10',dst:'10.10.4.88',proto:'TCP',mbps:5.1}],
-   config_changes:[{time:'2026-03-04 07:45',user:'sysadmin',change:'Interface 1/4 admin-down for maintenance'}]},
-  {id:'dist-1',  hostname:'XA-DIST-01',  role:'Distribution', ip:'10.2.0.1',  cpu:61, mem:67, isis_adj:4, status:'up',   model:'VSP 4900', uptime:'180d 12h', interfaces:[{name:'1/1',speed:'40G',util:55,status:'up'},{name:'1/2',speed:'40G',util:62,status:'up'},{name:'1/3',speed:'10G',util:41,status:'up'}], top_talkers:[], config_changes:[]},
-  {id:'dist-2',  hostname:'XA-DIST-02',  role:'Distribution', ip:'10.2.0.2',  cpu:87, mem:74, isis_adj:4, status:'up',   model:'VSP 4900', uptime:'180d 12h', interfaces:[{name:'1/1',speed:'40G',util:82,status:'up'},{name:'1/2',speed:'40G',util:79,status:'up'},{name:'1/3',speed:'10G',util:90,status:'up'}], top_talkers:[{src:'10.20.3.44',dst:'10.10.1.100',proto:'UDP',mbps:3.3}], config_changes:[{time:'2026-03-04 09:00',user:'netadmin',change:'QoS policy applied to uplinks'}]},
-  {id:'dist-3',  hostname:'XA-DIST-03',  role:'Distribution', ip:'10.2.0.3',  cpu:55, mem:61, isis_adj:4, status:'up',   model:'VSP 4900', uptime:'98d 4h',   interfaces:[{name:'1/1',speed:'40G',util:48,status:'up'},{name:'1/2',speed:'40G',util:53,status:'up'}], top_talkers:[], config_changes:[]},
-  {id:'dist-4',  hostname:'XA-DIST-04',  role:'Distribution', ip:'10.2.0.4',  cpu:49, mem:55, isis_adj:3, status:'up',   model:'VSP 4900', uptime:'98d 3h',   interfaces:[{name:'1/1',speed:'40G',util:37,status:'up'},{name:'1/2',speed:'40G',util:40,status:'up'},{name:'1/3',speed:'10G',util:0,status:'down'}], top_talkers:[], config_changes:[]},
-  {id:'edge-1',  hostname:'XA-EDGE-01',  role:'Edge',         ip:'10.3.0.1',  cpu:28, mem:41, isis_adj:2, status:'up',   model:'VSP 4450', uptime:'45d 2h',   interfaces:[{name:'1/1',speed:'10G',util:34,status:'up'},{name:'1/2',speed:'10G',util:28,status:'up'}], top_talkers:[], config_changes:[]},
-  {id:'edge-2',  hostname:'XA-EDGE-02',  role:'Edge',         ip:'10.3.0.2',  cpu:31, mem:44, isis_adj:2, status:'up',   model:'VSP 4450', uptime:'45d 1h',   interfaces:[{name:'1/1',speed:'10G',util:22,status:'up'},{name:'1/2',speed:'10G',util:19,status:'up'}], top_talkers:[], config_changes:[]},
-  {id:'edge-3',  hostname:'XA-EDGE-03',  role:'Edge',         ip:'10.3.0.3',  cpu:44, mem:50, isis_adj:2, status:'up',   model:'VSP 4450', uptime:'44d 22h',  interfaces:[{name:'1/1',speed:'10G',util:61,status:'up'},{name:'1/2',speed:'10G',util:58,status:'up'}], top_talkers:[], config_changes:[]},
-  {id:'edge-4',  hostname:'XA-EDGE-04',  role:'Edge',         ip:'10.3.0.4',  cpu:19, mem:38, isis_adj:2, status:'up',   model:'VSP 4450', uptime:'44d 20h',  interfaces:[{name:'1/1',speed:'10G',util:15,status:'up'},{name:'1/2',speed:'10G',util:12,status:'up'}], top_talkers:[], config_changes:[]},
-  {id:'edge-5',  hostname:'XA-EDGE-05',  role:'Edge',         ip:'10.3.0.5',  cpu:52, mem:59, isis_adj:2, status:'up',   model:'VSP 4450', uptime:'30d 8h',   interfaces:[{name:'1/1',speed:'10G',util:74,status:'up'},{name:'1/2',speed:'10G',util:69,status:'up'}], top_talkers:[], config_changes:[]},
-  {id:'edge-6',  hostname:'XA-EDGE-06',  role:'Edge',         ip:'10.3.0.6',  cpu:23, mem:42, isis_adj:2, status:'up',   model:'VSP 4450', uptime:'30d 7h',   interfaces:[{name:'1/1',speed:'10G',util:28,status:'up'},{name:'1/2',speed:'10G',util:25,status:'up'}], top_talkers:[], config_changes:[]},
-  {id:'edge-7',  hostname:'XA-EDGE-07',  role:'Edge',         ip:'10.3.0.7',  cpu:67, mem:72, isis_adj:2, status:'up',   model:'VSP 4450', uptime:'15d 3h',   interfaces:[{name:'1/1',speed:'10G',util:81,status:'up'},{name:'1/2',speed:'10G',util:77,status:'up'}], top_talkers:[], config_changes:[]},
-  {id:'edge-8',  hostname:'XA-EDGE-08',  role:'Edge',         ip:'10.3.0.8',  cpu:33, mem:47, isis_adj:2, status:'up',   model:'VSP 4450', uptime:'15d 2h',   interfaces:[{name:'1/1',speed:'10G',util:41,status:'up'},{name:'1/2',speed:'10G',util:38,status:'up'}], top_talkers:[], config_changes:[]},
-  {id:'edge-9',  hostname:'XA-EDGE-09',  role:'Edge',         ip:'10.3.0.9',  cpu:21, mem:36, isis_adj:2, status:'up',   model:'VSP 4450', uptime:'10d 14h',  interfaces:[{name:'1/1',speed:'10G',util:18,status:'up'},{name:'1/2',speed:'10G',util:14,status:'up'}], top_talkers:[], config_changes:[]},
-  {id:'edge-10', hostname:'XA-EDGE-10',  role:'Edge',         ip:'10.3.0.10', cpu:39, mem:53, isis_adj:1, status:'up',   model:'VSP 4450', uptime:'10d 13h',  interfaces:[{name:'1/1',speed:'10G',util:49,status:'up'},{name:'1/2',speed:'10G',util:0,status:'down'}], top_talkers:[], config_changes:[]},
-  {id:'edge-11', hostname:'XA-EDGE-11',  role:'Edge',         ip:'10.3.0.11', cpu:0,  mem:0,  isis_adj:0, status:'down', model:'VSP 4450', uptime:'0d 0h',    interfaces:[], top_talkers:[], config_changes:[]},
-  {id:'edge-12', hostname:'XA-EDGE-12',  role:'Edge',         ip:'10.3.0.12', cpu:29, mem:44, isis_adj:2, status:'up',   model:'VSP 4450', uptime:'5d 6h',    interfaces:[{name:'1/1',speed:'10G',util:33,status:'up'},{name:'1/2',speed:'10G',util:29,status:'up'}], top_talkers:[], config_changes:[]}
+const NODES=[
+  {id:'core-1',hostname:'XA-CORE-01',role:'Core',ip:'10.1.0.1',cpu:42,mem:58,isis_adj:6,status:'up',model:'VSP 8400',uptime:'234d 6h',interfaces:[{name:'1/1',speed:'100G',util:72,status:'up'},{name:'1/2',speed:'100G',util:65,status:'up'},{name:'1/3',speed:'100G',util:31,status:'up'},{name:'1/4',speed:'100G',util:88,status:'up'}],top_talkers:[{src:'10.10.1.55',dst:'10.20.2.10',proto:'TCP',mbps:4.2},{src:'10.10.3.22',dst:'10.30.1.5',proto:'UDP',mbps:3.1}],config_changes:[{time:'2026-03-04 08:12',user:'netadmin',change:'Added IS-IS auth key on port 1/4'},{time:'2026-03-03 14:55',user:'netadmin',change:'Updated BFD timer on core links'}]},
+  {id:'core-2',hostname:'XA-CORE-02',role:'Core',ip:'10.1.0.2',cpu:38,mem:52,isis_adj:6,status:'up',model:'VSP 8400',uptime:'234d 5h',interfaces:[{name:'1/1',speed:'100G',util:68,status:'up'},{name:'1/2',speed:'100G',util:71,status:'up'},{name:'1/3',speed:'100G',util:29,status:'up'},{name:'1/4',speed:'100G',util:14,status:'down'}],top_talkers:[{src:'10.30.1.10',dst:'10.10.4.88',proto:'TCP',mbps:5.1}],config_changes:[{time:'2026-03-04 07:45',user:'sysadmin',change:'Interface 1/4 admin-down for maintenance'}]},
+  {id:'dist-1',hostname:'XA-DIST-01',role:'Distribution',ip:'10.2.0.1',cpu:61,mem:67,isis_adj:4,status:'up',model:'VSP 4900',uptime:'180d 12h',interfaces:[{name:'1/1',speed:'40G',util:55,status:'up'},{name:'1/2',speed:'40G',util:62,status:'up'},{name:'1/3',speed:'10G',util:41,status:'up'}],top_talkers:[],config_changes:[]},
+  {id:'dist-2',hostname:'XA-DIST-02',role:'Distribution',ip:'10.2.0.2',cpu:87,mem:74,isis_adj:4,status:'up',model:'VSP 4900',uptime:'180d 12h',interfaces:[{name:'1/1',speed:'40G',util:82,status:'up'},{name:'1/2',speed:'40G',util:79,status:'up'},{name:'1/3',speed:'10G',util:90,status:'up'}],top_talkers:[{src:'10.20.3.44',dst:'10.10.1.100',proto:'UDP',mbps:3.3}],config_changes:[{time:'2026-03-04 09:00',user:'netadmin',change:'QoS policy applied to uplinks'}]},
+  {id:'dist-3',hostname:'XA-DIST-03',role:'Distribution',ip:'10.2.0.3',cpu:55,mem:61,isis_adj:4,status:'up',model:'VSP 4900',uptime:'98d 4h',interfaces:[{name:'1/1',speed:'40G',util:48,status:'up'},{name:'1/2',speed:'40G',util:53,status:'up'}],top_talkers:[],config_changes:[]},
+  {id:'dist-4',hostname:'XA-DIST-04',role:'Distribution',ip:'10.2.0.4',cpu:49,mem:55,isis_adj:3,status:'up',model:'VSP 4900',uptime:'98d 3h',interfaces:[{name:'1/1',speed:'40G',util:37,status:'up'},{name:'1/2',speed:'40G',util:40,status:'up'},{name:'1/3',speed:'10G',util:0,status:'down'}],top_talkers:[],config_changes:[]},
+  {id:'edge-1',hostname:'XA-EDGE-01',role:'Edge',ip:'10.3.0.1',cpu:28,mem:41,isis_adj:2,status:'up',model:'VSP 4450',uptime:'45d 2h',interfaces:[{name:'1/1',speed:'10G',util:34,status:'up'},{name:'1/2',speed:'10G',util:28,status:'up'}],top_talkers:[],config_changes:[]},
+  {id:'edge-2',hostname:'XA-EDGE-02',role:'Edge',ip:'10.3.0.2',cpu:31,mem:44,isis_adj:2,status:'up',model:'VSP 4450',uptime:'45d 1h',interfaces:[{name:'1/1',speed:'10G',util:22,status:'up'},{name:'1/2',speed:'10G',util:19,status:'up'}],top_talkers:[],config_changes:[]},
+  {id:'edge-3',hostname:'XA-EDGE-03',role:'Edge',ip:'10.3.0.3',cpu:44,mem:50,isis_adj:2,status:'up',model:'VSP 4450',uptime:'44d 22h',interfaces:[{name:'1/1',speed:'10G',util:61,status:'up'},{name:'1/2',speed:'10G',util:58,status:'up'}],top_talkers:[],config_changes:[]},
+  {id:'edge-4',hostname:'XA-EDGE-04',role:'Edge',ip:'10.3.0.4',cpu:19,mem:38,isis_adj:2,status:'up',model:'VSP 4450',uptime:'44d 20h',interfaces:[{name:'1/1',speed:'10G',util:15,status:'up'},{name:'1/2',speed:'10G',util:12,status:'up'}],top_talkers:[],config_changes:[]},
+  {id:'edge-5',hostname:'XA-EDGE-05',role:'Edge',ip:'10.3.0.5',cpu:52,mem:59,isis_adj:2,status:'up',model:'VSP 4450',uptime:'30d 8h',interfaces:[{name:'1/1',speed:'10G',util:74,status:'up'},{name:'1/2',speed:'10G',util:69,status:'up'}],top_talkers:[],config_changes:[]},
+  {id:'edge-6',hostname:'XA-EDGE-06',role:'Edge',ip:'10.3.0.6',cpu:23,mem:42,isis_adj:2,status:'up',model:'VSP 4450',uptime:'30d 7h',interfaces:[{name:'1/1',speed:'10G',util:28,status:'up'},{name:'1/2',speed:'10G',util:25,status:'up'}],top_talkers:[],config_changes:[]},
+  {id:'edge-7',hostname:'XA-EDGE-07',role:'Edge',ip:'10.3.0.7',cpu:67,mem:72,isis_adj:2,status:'up',model:'VSP 4450',uptime:'15d 3h',interfaces:[{name:'1/1',speed:'10G',util:81,status:'up'},{name:'1/2',speed:'10G',util:77,status:'up'}],top_talkers:[],config_changes:[]},
+  {id:'edge-8',hostname:'XA-EDGE-08',role:'Edge',ip:'10.3.0.8',cpu:33,mem:47,isis_adj:2,status:'up',model:'VSP 4450',uptime:'15d 2h',interfaces:[{name:'1/1',speed:'10G',util:41,status:'up'},{name:'1/2',speed:'10G',util:38,status:'up'}],top_talkers:[],config_changes:[]},
+  {id:'edge-9',hostname:'XA-EDGE-09',role:'Edge',ip:'10.3.0.9',cpu:21,mem:36,isis_adj:2,status:'up',model:'VSP 4450',uptime:'10d 14h',interfaces:[{name:'1/1',speed:'10G',util:18,status:'up'},{name:'1/2',speed:'10G',util:14,status:'up'}],top_talkers:[],config_changes:[]},
+  {id:'edge-10',hostname:'XA-EDGE-10',role:'Edge',ip:'10.3.0.10',cpu:39,mem:53,isis_adj:1,status:'up',model:'VSP 4450',uptime:'10d 13h',interfaces:[{name:'1/1',speed:'10G',util:49,status:'up'},{name:'1/2',speed:'10G',util:0,status:'down'}],top_talkers:[],config_changes:[]},
+  {id:'edge-11',hostname:'XA-EDGE-11',role:'Edge',ip:'10.3.0.11',cpu:0,mem:0,isis_adj:0,status:'down',model:'VSP 4450',uptime:'0d 0h',interfaces:[],top_talkers:[],config_changes:[]},
+  {id:'edge-12',hostname:'XA-EDGE-12',role:'Edge',ip:'10.3.0.12',cpu:29,mem:44,isis_adj:2,status:'up',model:'VSP 4450',uptime:'5d 6h',interfaces:[{name:'1/1',speed:'10G',util:33,status:'up'},{name:'1/2',speed:'10G',util:29,status:'up'}],top_talkers:[],config_changes:[]}
 ];
-
-const LINKS = [
-  {src:'core-1', dst:'core-2',  util:58, status:'up'},
-  {src:'core-1', dst:'dist-1',  util:55, status:'up'},
-  {src:'core-1', dst:'dist-2',  util:82, status:'up'},
-  {src:'core-1', dst:'dist-3',  util:48, status:'up'},
-  {src:'core-1', dst:'dist-4',  util:0,  status:'down'},
-  {src:'core-2', dst:'dist-2',  util:79, status:'up'},
-  {src:'core-2', dst:'dist-3',  util:53, status:'up'},
-  {src:'core-2', dst:'dist-4',  util:37, status:'up'},
-  {src:'dist-1', dst:'edge-1',  util:34, status:'up'},
-  {src:'dist-1', dst:'edge-2',  util:22, status:'up'},
-  {src:'dist-1', dst:'edge-3',  util:61, status:'up'},
-  {src:'dist-2', dst:'edge-4',  util:15, status:'up'},
-  {src:'dist-2', dst:'edge-5',  util:74, status:'up'},
-  {src:'dist-2', dst:'edge-6',  util:28, status:'up'},
-  {src:'dist-3', dst:'edge-7',  util:81, status:'up'},
-  {src:'dist-3', dst:'edge-8',  util:41, status:'up'},
-  {src:'dist-3', dst:'edge-9',  util:18, status:'up'},
-  {src:'dist-4', dst:'edge-10', util:49, status:'up'},
-  {src:'dist-4', dst:'edge-11', util:0,  status:'down'},
-  {src:'dist-4', dst:'edge-12', util:33, status:'up'},
+const LINKS=[
+  {src:'core-1',dst:'core-2',util:58,status:'up'},{src:'core-1',dst:'dist-1',util:55,status:'up'},
+  {src:'core-1',dst:'dist-2',util:82,status:'up'},{src:'core-1',dst:'dist-3',util:48,status:'up'},
+  {src:'core-1',dst:'dist-4',util:0,status:'down'},{src:'core-2',dst:'dist-2',util:79,status:'up'},
+  {src:'core-2',dst:'dist-3',util:53,status:'up'},{src:'core-2',dst:'dist-4',util:37,status:'up'},
+  {src:'dist-1',dst:'edge-1',util:34,status:'up'},{src:'dist-1',dst:'edge-2',util:22,status:'up'},
+  {src:'dist-1',dst:'edge-3',util:61,status:'up'},{src:'dist-2',dst:'edge-4',util:15,status:'up'},
+  {src:'dist-2',dst:'edge-5',util:74,status:'up'},{src:'dist-2',dst:'edge-6',util:28,status:'up'},
+  {src:'dist-3',dst:'edge-7',util:81,status:'up'},{src:'dist-3',dst:'edge-8',util:41,status:'up'},
+  {src:'dist-3',dst:'edge-9',util:18,status:'up'},{src:'dist-4',dst:'edge-10',util:49,status:'up'},
+  {src:'dist-4',dst:'edge-11',util:0,status:'down'},{src:'dist-4',dst:'edge-12',util:33,status:'up'}
 ];
-
-const SERVICES = [
-  {isid:10001, name:'Corp-Data',       type:'L2VSN',    tenant:'Corporate',  vrf:'CORP-VRF',  nodes:['core-1','core-2','dist-1','dist-2','edge-1','edge-2','edge-3'], status:'active'},
-  {isid:10002, name:'Corp-Voice',      type:'L2VSN',    tenant:'Corporate',  vrf:'CORP-VRF',  nodes:['core-1','core-2','dist-1','dist-3','edge-4','edge-5'],          status:'active'},
-  {isid:10003, name:'Corp-Video',      type:'Multicast',tenant:'Corporate',  vrf:'CORP-VRF',  nodes:['core-1','core-2','dist-1','dist-2'],                           status:'active'},
-  {isid:20001, name:'Guest-Wifi',      type:'L2VSN',    tenant:'Guest',      vrf:'GUEST-VRF', nodes:['dist-1','dist-2','dist-3','dist-4','edge-1','edge-6','edge-9'], status:'active'},
-  {isid:20002, name:'Guest-Mgmt',      type:'L3VSN',    tenant:'Guest',      vrf:'GUEST-VRF', nodes:['core-1','core-2','dist-1'],                                    status:'active'},
-  {isid:30001, name:'IoT-Sensors',     type:'L2VSN',    tenant:'IoT',        vrf:'IOT-VRF',   nodes:['dist-3','dist-4','edge-7','edge-8','edge-10','edge-12'],        status:'active'},
-  {isid:30002, name:'IoT-Control',     type:'L3VSN',    tenant:'IoT',        vrf:'IOT-VRF',   nodes:['core-1','dist-3','dist-4'],                                    status:'active'},
-  {isid:40001, name:'Mgmt-OOB',        type:'L2VSN',    tenant:'Management', vrf:'MGMT-VRF',  nodes:['core-1','core-2','dist-1','dist-2','dist-3','dist-4'],          status:'active'},
-  {isid:40002, name:'NetMgmt-SNMP',    type:'L3VSN',    tenant:'Management', vrf:'MGMT-VRF',  nodes:['core-1','core-2'],                                             status:'active'},
-  {isid:50001, name:'Security-Cam',    type:'L2VSN',    tenant:'Security',   vrf:'SEC-VRF',   nodes:['dist-2','dist-3','edge-5','edge-6','edge-7','edge-11'],         status:'degraded'},
-  {isid:50002, name:'Access-Control',  type:'L3VSN',    tenant:'Security',   vrf:'SEC-VRF',   nodes:['core-1','core-2','dist-1','dist-2','dist-3','dist-4'],          status:'active'},
-  {isid:60001, name:'DR-Replication',  type:'L3VSN',    tenant:'Datacenter', vrf:'DC-VRF',    nodes:['core-1','core-2'],                                             status:'active'},
+const SERVICES=[
+  {isid:10001,name:'Corp-Data',type:'L2VSN',tenant:'Corporate',vrf:'CORP-VRF',nodes:['core-1','core-2','dist-1','dist-2','edge-1','edge-2','edge-3'],status:'active'},
+  {isid:10002,name:'Corp-Voice',type:'L2VSN',tenant:'Corporate',vrf:'CORP-VRF',nodes:['core-1','core-2','dist-1','dist-3','edge-4','edge-5'],status:'active'},
+  {isid:10003,name:'Corp-Video',type:'Multicast',tenant:'Corporate',vrf:'CORP-VRF',nodes:['core-1','core-2','dist-1','dist-2'],status:'active'},
+  {isid:20001,name:'Guest-Wifi',type:'L2VSN',tenant:'Guest',vrf:'GUEST-VRF',nodes:['dist-1','dist-2','dist-3','dist-4','edge-1','edge-6','edge-9'],status:'active'},
+  {isid:20002,name:'Guest-Mgmt',type:'L3VSN',tenant:'Guest',vrf:'GUEST-VRF',nodes:['core-1','core-2','dist-1'],status:'active'},
+  {isid:30001,name:'IoT-Sensors',type:'L2VSN',tenant:'IoT',vrf:'IOT-VRF',nodes:['dist-3','dist-4','edge-7','edge-8','edge-10','edge-12'],status:'active'},
+  {isid:30002,name:'IoT-Control',type:'L3VSN',tenant:'IoT',vrf:'IOT-VRF',nodes:['core-1','dist-3','dist-4'],status:'active'},
+  {isid:40001,name:'Mgmt-OOB',type:'L2VSN',tenant:'Management',vrf:'MGMT-VRF',nodes:['core-1','core-2','dist-1','dist-2','dist-3','dist-4'],status:'active'},
+  {isid:40002,name:'NetMgmt-SNMP',type:'L3VSN',tenant:'Management',vrf:'MGMT-VRF',nodes:['core-1','core-2'],status:'active'},
+  {isid:50001,name:'Security-Cam',type:'L2VSN',tenant:'Security',vrf:'SEC-VRF',nodes:['dist-2','dist-3','edge-5','edge-6','edge-7','edge-11'],status:'degraded'},
+  {isid:50002,name:'Access-Control',type:'L3VSN',tenant:'Security',vrf:'SEC-VRF',nodes:['core-1','core-2','dist-1','dist-2','dist-3','dist-4'],status:'active'},
+  {isid:60001,name:'DR-Replication',type:'L3VSN',tenant:'Datacenter',vrf:'DC-VRF',nodes:['core-1','core-2'],status:'active'}
 ];
-
-const ALERTS = [
-  {level:'critical', node:'XA-DIST-02', msg:'CPU at 87% — exceeds 85% threshold'},
-  {level:'critical', node:'XA-DIST-02', msg:'Interface 1/3 utilization at 90%'},
-  {level:'warning',  node:'XA-CORE-01', msg:'Interface 1/4 utilization at 88%'},
-  {level:'warning',  node:'XA-EDGE-07', msg:'CPU at 67% — approaching threshold'},
-  {level:'critical', node:'XA-EDGE-11', msg:'Node DOWN — no IS-IS adjacencies'},
-  {level:'warning',  node:'XA-DIST-04', msg:'IS-IS adjacency count reduced to 3'},
+const ALERTS=[
+  {level:'critical',node:'XA-DIST-02',msg:'CPU at 87% \u2014 exceeds 85% threshold'},
+  {level:'critical',node:'XA-DIST-02',msg:'Interface 1/3 utilization at 90%'},
+  {level:'warning',node:'XA-CORE-01',msg:'Interface 1/4 utilization at 88%'},
+  {level:'warning',node:'XA-EDGE-07',msg:'CPU at 67% \u2014 approaching threshold'},
+  {level:'critical',node:'XA-EDGE-11',msg:'Node DOWN \u2014 no IS-IS adjacencies'},
+  {level:'warning',node:'XA-DIST-04',msg:'IS-IS adjacency count reduced to 3'}
 ];
-
-// ==================== HELPERS ====================
-function utilColor(u) {
-  if (u >= 80) return '#f85149';
-  if (u >= 60) return '#d29922';
-  return '#3fb950';
-}
-function nodeColor(role) {
-  if (role === 'Core') return '#bc8cff';
-  if (role === 'Distribution') return '#58a6ff';
-  return '#3fb950';
-}
-function badge(status) {
-  const map = {up:'green',active:'green',down:'red',degraded:'yellow'};
-  return `<span class="badge badge-${map[status]||'blue'}">${status}</span>`;
-}
-function progressBar(pct) {
-  const c = utilColor(pct);
-  return `<div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${c}"></div></div><span style="color:${c};font-size:11px">${pct}%</span>`;
-}
-
-// ==================== CLOCK ====================
-function updateClock() { document.getElementById('clock').textContent = new Date().toLocaleString(); }
-setInterval(updateClock, 1000); updateClock();
-
-// ==================== TABS ====================
-function switchTab(name) {
-  const names = ['topology','health','services','analytics'];
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', names[i]===name));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+function utilColor(u){return u>=80?'#f85149':u>=60?'#d29922':'#3fb950';}
+function nodeColor(r){return r==='Core'?'#bc8cff':r==='Distribution'?'#58a6ff':'#3fb950';}
+function badge(s){var m={up:'green',active:'green',down:'red',degraded:'yellow'};return '<span class="badge badge-'+(m[s]||'blue')+'">'+s+'</span>';}
+function progressBar(p){var c=utilColor(p);return '<div class="progress-bar"><div class="progress-fill" style="width:'+p+'%;background:'+c+'"></div></div><span style="color:'+c+';font-size:11px">'+p+'%</span>';}
+function cssVar(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleString();}
+setInterval(updateClock,1000);updateClock();
+var TAB_NAMES=['topology','health','services','analytics'];
+function switchTab(name){
+  document.querySelectorAll('.nav-tab').forEach(function(t,i){t.classList.toggle('active',TAB_NAMES[i]===name);});
+  document.querySelectorAll('.tab-content').forEach(function(c){c.classList.remove('active');});
   document.getElementById('tab-'+name).classList.add('active');
-  if (name==='health'    && !chartsBuilt.health)    buildHealthCharts();
-  if (name==='services')                             buildServicesTable();
-  if (name==='analytics' && !chartsBuilt.analytics) buildAnalyticsCharts();
+  if(name==='health'&&!chartsBuilt.health)buildHealthCharts();
+  if(name==='services')buildServicesTable();
+  if(name==='analytics'&&!chartsBuilt.analytics)buildAnalyticsCharts();
 }
-
-// ==================== ALERTS ====================
-function buildAlerts() {
-  document.getElementById('alert-banner').innerHTML = ALERTS.map(a =>
-    `<div class="alert-item ${a.level==='warning'?'alert-warn':''}">
-       <span class="icon">${a.level==='critical'?'&#9940;':'&#9888;'}</span>
-       <strong>${a.node}:</strong> ${a.msg}
-     </div>`).join('');
+function buildAlerts(){
+  document.getElementById('alert-banner').innerHTML=ALERTS.map(function(a){return '<div class="alert-item '+(a.level==='warning'?'alert-warn':'')+'"><span class="icon">'+(a.level==='critical'?'&#9940;':'&#9888;')+'</span> <strong>'+a.node+':</strong> '+a.msg+'</div>';}).join('');
 }
-
-// ==================== STATS ====================
-function buildStats() {
-  const up     = NODES.filter(n => n.status==='up').length;
-  const linksUp= LINKS.filter(l => l.status==='up').length;
-  const isis   = NODES.reduce((s,n) => s+n.isis_adj, 0);
-  document.getElementById('s-nodes-up').textContent    = up;
-  document.getElementById('s-nodes-total').textContent = `of ${NODES.length} total`;
-  document.getElementById('s-links-up').textContent    = linksUp;
-  document.getElementById('s-links-total').textContent = `of ${LINKS.length} total`;
-  document.getElementById('s-isis').textContent        = isis;
-  document.getElementById('s-alerts').textContent      = ALERTS.length;
-  document.getElementById('h-isis').textContent        = isis;
-  document.getElementById('h-alerts').textContent      = ALERTS.length;
-  document.getElementById('s-isids').textContent       = SERVICES.length;
-  document.getElementById('s-vrfs').textContent        = [...new Set(SERVICES.map(s=>s.vrf))].length;
-  document.getElementById('s-mcast').textContent       = SERVICES.filter(s=>s.type==='Multicast').length;
+function buildStats(){
+  var up=NODES.filter(function(n){return n.status==='up';}).length;
+  var lu=LINKS.filter(function(l){return l.status==='up';}).length;
+  var isis=NODES.reduce(function(s,n){return s+n.isis_adj;},0);
+  document.getElementById('s-nodes-up').textContent=up;
+  document.getElementById('s-nodes-total').textContent='of '+NODES.length+' total';
+  document.getElementById('s-links-up').textContent=lu;
+  document.getElementById('s-links-total').textContent='of '+LINKS.length+' total';
+  document.getElementById('s-isis').textContent=isis;
+  document.getElementById('s-alerts').textContent=ALERTS.length;
+  document.getElementById('h-isis').textContent=isis;
+  document.getElementById('h-alerts').textContent=ALERTS.length;
+  document.getElementById('s-isids').textContent=SERVICES.length;
+  document.getElementById('s-vrfs').textContent=[...new Set(SERVICES.map(function(s){return s.vrf;}))].length;
+  document.getElementById('s-mcast').textContent=SERVICES.filter(function(s){return s.type==='Multicast';}).length;
 }
-
-// ==================== TOPOLOGY ====================
-function buildTopology() {
-  const svg = document.getElementById('topology-svg');
-  const W = svg.parentElement.offsetWidth || 900;
-  const H = 480;
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-
-  const pos = {};
-  const cores = NODES.filter(n=>n.role==='Core');
-  const dists  = NODES.filter(n=>n.role==='Distribution');
-  const edges  = NODES.filter(n=>n.role==='Edge');
-
-  cores.forEach((n,i) => { pos[n.id]={x: W/2 - (cores.length-1)*70 + i*140, y:75}; });
-  dists.forEach((n,i) => { pos[n.id]={x: 80 + i*(W-160)/(dists.length-1),   y:210}; });
-  edges.forEach((n,i) => { pos[n.id]={x: 40 + i*(W-80)/(edges.length-1),    y:370}; });
-
-  let html = '';
-
-  LINKS.forEach(l => {
-    const s=pos[l.src], d=pos[l.dst]; if(!s||!d) return;
-    const color  = l.status==='down' ? '#f85149' : utilColor(l.util);
-    const dash   = l.status==='down' ? '5,4' : 'none';
-    const w      = (l.src.includes('core')&&l.dst.includes('core')) ? 4 : l.src.includes('core')||l.dst.includes('core') ? 3 : 2;
-    const opacity= l.status==='down' ? 0.5 : 0.85;
-    html += `<line x1="${s.x}" y1="${s.y}" x2="${d.x}" y2="${d.y}" stroke="${color}" stroke-width="${w}" stroke-dasharray="${dash}" opacity="${opacity}"/>`;
-    if (l.status==='up') {
-      const mx=(s.x+d.x)/2, my=(s.y+d.y)/2;
-      html += `<text x="${mx}" y="${my}" fill="${color}" font-size="9" text-anchor="middle" dy="-3" opacity="0.75">${Math.round(l.util)}%</text>`;
-    }
+function buildTopology(){
+  var svg=document.getElementById('topology-svg');
+  var W=svg.parentElement.offsetWidth||900,H=480;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  var tc=cssVar('--text');
+  var pos={};
+  var cores=NODES.filter(function(n){return n.role==='Core';}),dists=NODES.filter(function(n){return n.role==='Distribution';}),edges=NODES.filter(function(n){return n.role==='Edge';});
+  cores.forEach(function(n,i){pos[n.id]={x:W/2-(cores.length-1)*70+i*140,y:75};});
+  dists.forEach(function(n,i){pos[n.id]={x:80+i*(W-160)/(dists.length-1),y:210};});
+  edges.forEach(function(n,i){pos[n.id]={x:40+i*(W-80)/(edges.length-1),y:370};});
+  var h='';
+  LINKS.forEach(function(l){
+    var s=pos[l.src],d=pos[l.dst];if(!s||!d)return;
+    var c=l.status==='down'?'#f85149':utilColor(l.util);
+    var da=l.status==='down'?'5,4':'none';
+    var w=(l.src.indexOf('core')>=0&&l.dst.indexOf('core')>=0)?4:(l.src.indexOf('core')>=0||l.dst.indexOf('core')>=0)?3:2;
+    var op=l.status==='down'?0.5:0.85;
+    h+='<line x1="'+s.x+'" y1="'+s.y+'" x2="'+d.x+'" y2="'+d.y+'" stroke="'+c+'" stroke-width="'+w+'" stroke-dasharray="'+da+'" opacity="'+op+'"/>';
+    if(l.status==='up'){var mx=(s.x+d.x)/2,my=(s.y+d.y)/2;h+='<text x="'+mx+'" y="'+my+'" fill="'+c+'" font-size="9" text-anchor="middle" dy="-3" opacity="0.75">'+Math.round(l.util)+'%</text>';}
   });
-
-  NODES.forEach(n => {
-    const p = pos[n.id]; if(!p) return;
-    const r  = n.role==='Core' ? 22 : n.role==='Distribution' ? 17 : 13;
-    const fc = n.status==='down' ? '#30363d' : nodeColor(n.role);
-    const sc = (n.cpu>85||n.status==='down') ? '#f85149' : n.cpu>60 ? '#d29922' : '#30363d';
-    const sw = (n.cpu>85||n.status==='down') ? 3 : 2;
-    html += `<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${fc}" fill-opacity="0.15" stroke="${sc}" stroke-width="${sw}" style="cursor:pointer" onclick="openPanel('${n.id}')"/>`;
-    html += `<circle cx="${p.x}" cy="${p.y}" r="${r-5}" fill="${fc}" fill-opacity="0.9" style="cursor:pointer;pointer-events:none"/>`;
-    const lbl = n.hostname.replace('XA-','');
-    html += `<text x="${p.x}" y="${p.y+r+13}" fill="#e6edf3" font-size="9" text-anchor="middle" style="pointer-events:none">${lbl}</text>`;
-    const cpuTxt = n.status==='up' ? `${Math.round(n.cpu)}%` : 'DOWN';
-    const cpuCol = n.status==='up' ? utilColor(n.cpu) : '#f85149';
-    html += `<text x="${p.x}" y="${p.y+r+23}" fill="${cpuCol}" font-size="8" text-anchor="middle" style="pointer-events:none">${cpuTxt}</text>`;
+  NODES.forEach(function(n){
+    var p=pos[n.id];if(!p)return;
+    var r=n.role==='Core'?22:n.role==='Distribution'?17:13;
+    var fc=n.status==='down'?'#30363d':nodeColor(n.role);
+    var sc=(n.cpu>85||n.status==='down')?'#f85149':n.cpu>60?'#d29922':'#30363d';
+    var sw=(n.cpu>85||n.status==='down')?3:2;
+    h+='<circle cx="'+p.x+'" cy="'+p.y+'" r="'+r+'" fill="'+fc+'" fill-opacity="0.15" stroke="'+sc+'" stroke-width="'+sw+'" style="cursor:pointer" onclick="openPanel(\''+n.id+'\')"/>';
+    h+='<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(r-5)+'" fill="'+fc+'" fill-opacity="0.9" style="pointer-events:none"/>';
+    h+='<text x="'+p.x+'" y="'+(p.y+r+13)+'" fill="'+tc+'" font-size="9" text-anchor="middle" style="pointer-events:none">'+n.hostname.replace('XA-','')+'</text>';
+    var ct=n.status==='up'?Math.round(n.cpu)+'%':'DOWN';
+    h+='<text x="'+p.x+'" y="'+(p.y+r+23)+'" fill="'+(n.status==='up'?utilColor(n.cpu):'#f85149')+'" font-size="8" text-anchor="middle" style="pointer-events:none">'+ct+'</text>';
   });
-
-  html += `<text x="10" y="80"  fill="#bc8cff" font-size="10" font-weight="600">CORE</text>`;
-  html += `<text x="10" y="215" fill="#58a6ff" font-size="10" font-weight="600">DIST</text>`;
-  html += `<text x="10" y="375" fill="#3fb950" font-size="10" font-weight="600">EDGE</text>`;
-
-  svg.innerHTML = html;
+  h+='<text x="10" y="80" fill="#bc8cff" font-size="10" font-weight="600">CORE</text>';
+  h+='<text x="10" y="215" fill="#58a6ff" font-size="10" font-weight="600">DIST</text>';
+  h+='<text x="10" y="375" fill="#3fb950" font-size="10" font-weight="600">EDGE</text>';
+  svg.innerHTML=h;
 }
-
-// ==================== DETAIL PANEL ====================
-function openPanel(nodeId) {
-  const n = NODES.find(x=>x.id===nodeId); if(!n) return;
-  document.getElementById('panel-title').textContent = n.hostname;
-
-  let html = `<div class="detail-section"><h4>Overview</h4>
-    <table>
-      <tr><td style="color:var(--text-muted)">Role</td><td>${n.role}</td></tr>
-      <tr><td style="color:var(--text-muted)">Model</td><td>${n.model}</td></tr>
-      <tr><td style="color:var(--text-muted)">IP Address</td><td style="font-family:monospace">${n.ip}</td></tr>
-      <tr><td style="color:var(--text-muted)">Status</td><td>${badge(n.status)}</td></tr>
-      <tr><td style="color:var(--text-muted)">Uptime</td><td>${n.uptime}</td></tr>
-      <tr><td style="color:var(--text-muted)">CPU</td><td><span style="color:${utilColor(n.cpu)}">${n.cpu}%</span></td></tr>
-      <tr><td style="color:var(--text-muted)">Memory</td><td><span style="color:${utilColor(n.mem)}">${n.mem}%</span></td></tr>
-      <tr><td style="color:var(--text-muted)">IS-IS Adj</td><td>${n.isis_adj}</td></tr>
-    </table></div>`;
-
-  if (n.interfaces.length) {
-    html += `<div class="detail-section"><h4>Interface Stats</h4><table>
-      <thead><tr><th>Port</th><th>Speed</th><th>Utilization</th><th>Status</th></tr></thead><tbody>`;
-    n.interfaces.forEach(i => {
-      html += `<tr><td style="font-family:monospace">${i.name}</td><td>${i.speed}</td><td>${progressBar(i.util)}</td><td>${badge(i.status)}</td></tr>`;
-    });
-    html += '</tbody></table></div>';
+function openPanel(nodeId){
+  var n=NODES.find(function(x){return x.id===nodeId;});if(!n)return;
+  document.getElementById('panel-title').textContent=n.hostname;
+  var h='<div class="detail-section"><h4>Overview</h4><table>'
+    +'<tr><td style="color:var(--text-muted)">Role</td><td>'+n.role+'</td></tr>'
+    +'<tr><td style="color:var(--text-muted)">Model</td><td>'+n.model+'</td></tr>'
+    +'<tr><td style="color:var(--text-muted)">IP Address</td><td style="font-family:monospace">'+n.ip+'</td></tr>'
+    +'<tr><td style="color:var(--text-muted)">Status</td><td>'+badge(n.status)+'</td></tr>'
+    +'<tr><td style="color:var(--text-muted)">Uptime</td><td>'+n.uptime+'</td></tr>'
+    +'<tr><td style="color:var(--text-muted)">CPU</td><td><span style="color:'+utilColor(n.cpu)+'">'+n.cpu+'%</span></td></tr>'
+    +'<tr><td style="color:var(--text-muted)">Memory</td><td><span style="color:'+utilColor(n.mem)+'">'+n.mem+'%</span></td></tr>'
+    +'<tr><td style="color:var(--text-muted)">IS-IS Adj</td><td>'+n.isis_adj+'</td></tr>'
+    +'</table></div>';
+  if(n.interfaces.length){
+    h+='<div class="detail-section"><h4>Interface Stats</h4><table><thead><tr><th>Port</th><th>Speed</th><th>Utilization</th><th>Status</th></tr></thead><tbody>';
+    n.interfaces.forEach(function(i){h+='<tr><td style="font-family:monospace">'+i.name+'</td><td>'+i.speed+'</td><td>'+progressBar(i.util)+'</td><td>'+badge(i.status)+'</td></tr>';});
+    h+='</tbody></table></div>';
   }
-
-  if (n.top_talkers.length) {
-    html += `<div class="detail-section"><h4>Top Talkers</h4><table>
-      <thead><tr><th>Source</th><th>Destination</th><th>Proto</th><th>Mbps</th></tr></thead><tbody>`;
-    n.top_talkers.forEach(t => {
-      html += `<tr><td style="font-family:monospace;font-size:11px">${t.src}</td><td style="font-family:monospace;font-size:11px">${t.dst}</td><td>${t.proto}</td><td style="color:var(--orange)">${t.mbps}</td></tr>`;
-    });
-    html += '</tbody></table></div>';
+  if(n.top_talkers.length){
+    h+='<div class="detail-section"><h4>Top Talkers</h4><table><thead><tr><th>Source</th><th>Destination</th><th>Proto</th><th>Mbps</th></tr></thead><tbody>';
+    n.top_talkers.forEach(function(t){h+='<tr><td style="font-family:monospace;font-size:11px">'+t.src+'</td><td style="font-family:monospace;font-size:11px">'+t.dst+'</td><td>'+t.proto+'</td><td style="color:var(--orange)">'+t.mbps+'</td></tr>';});
+    h+='</tbody></table></div>';
   }
-
-  const adj = LINKS.filter(l=>l.src===nodeId||l.dst===nodeId);
-  if (adj.length) {
-    html += `<div class="detail-section"><h4>IS-IS Adjacencies</h4>`;
-    adj.forEach(l => {
-      const peerId   = l.src===nodeId ? l.dst : l.src;
-      const peerNode = NODES.find(x=>x.id===peerId);
-      if (!peerNode) return;
-      html += `<div class="adj-row"><span>${peerNode.hostname}</span><span style="color:var(--text-muted);font-size:11px">${l.util}% util</span>${badge(l.status)}</div>`;
-    });
-    html += '</div>';
+  var adj=LINKS.filter(function(l){return l.src===nodeId||l.dst===nodeId;});
+  if(adj.length){
+    h+='<div class="detail-section"><h4>IS-IS Adjacencies</h4>';
+    adj.forEach(function(l){var pid=l.src===nodeId?l.dst:l.src;var pn=NODES.find(function(x){return x.id===pid;});if(!pn)return;h+='<div class="adj-row"><span>'+pn.hostname+'</span><span style="color:var(--text-muted);font-size:11px">'+l.util+'% util</span>'+badge(l.status)+'</div>';});
+    h+='</div>';
   }
-
-  html += `<div class="detail-section"><h4>Recent Config Changes</h4>`;
-  if (n.config_changes.length) {
-    n.config_changes.forEach(c => {
-      html += `<div class="change-entry"><div class="change-time">${c.time} &mdash; ${c.user}</div><div>${c.change}</div></div>`;
-    });
-  } else {
-    html += `<div style="color:var(--text-muted);font-size:12px">No recent changes recorded</div>`;
-  }
-  html += '</div>';
-
-  document.getElementById('panel-body').innerHTML = html;
+  h+='<div class="detail-section"><h4>Recent Config Changes</h4>';
+  if(n.config_changes.length){n.config_changes.forEach(function(c){h+='<div class="change-entry"><div class="change-time">'+c.time+' \u2014 '+c.user+'</div><div>'+c.change+'</div></div>';});}
+  else{h+='<div style="color:var(--text-muted);font-size:12px">No recent changes recorded</div>';}
+  h+='</div>';
+  document.getElementById('panel-body').innerHTML=h;
   document.getElementById('detail-panel').classList.add('open');
 }
-function closePanel() { document.getElementById('detail-panel').classList.remove('open'); }
-
-// ==================== HEALTH CHARTS ====================
-const chartsBuilt = {health:false, analytics:false};
-const CI = {};
-
-function buildHealthCharts() {
-  chartsBuilt.health = true;
-  const labels    = NODES.map(n=>n.hostname.replace('XA-',''));
-  const cpuData   = NODES.map(n=>n.cpu);
-  const memData   = NODES.map(n=>n.mem);
-
-  CI.cpu = new Chart(document.getElementById('chart-cpu'), {
-    type:'bar', data:{ labels, datasets:[{label:'CPU %',    data:cpuData, backgroundColor:cpuData.map(v=>utilColor(v)+'cc'), borderWidth:0}] },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{x:{ticks:{color:'#8b949e',font:{size:8}},grid:{color:'#21262d'}},y:{max:100,ticks:{color:'#8b949e'},grid:{color:'#21262d'}}}}
-  });
-  CI.mem = new Chart(document.getElementById('chart-mem'), {
-    type:'bar', data:{ labels, datasets:[{label:'Memory %', data:memData, backgroundColor:memData.map(v=>utilColor(v)+'cc'), borderWidth:0}] },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{x:{ticks:{color:'#8b949e',font:{size:8}},grid:{color:'#21262d'}},y:{max:100,ticks:{color:'#8b949e'},grid:{color:'#21262d'}}}}
-  });
-
-  document.getElementById('health-table').innerHTML = NODES.map(n=>`
-    <tr>
-      <td>${n.hostname}</td><td>${n.role}</td><td>${n.isis_adj}</td><td>${badge(n.status)}</td>
-      <td style="color:var(--text-muted)">Mar 4 09:00</td>
-      <td><span style="color:${utilColor(n.cpu)}">${n.cpu}%</span></td>
-      <td><span style="color:${utilColor(n.mem)}">${n.mem}%</span></td>
-    </tr>`).join('');
-
-  const bumLabels = Array.from({length:24},(_,i)=>`${i}:00`);
-  const bumData   = bumLabels.map(()=>+(80+Math.random()*80).toFixed(1));
-  CI.bum = new Chart(document.getElementById('chart-bum'), {
-    type:'line', data:{ labels:bumLabels, datasets:[{label:'BUM Mbps', data:bumData, borderColor:'#ffa657', backgroundColor:'#ffa65720', fill:true, tension:0.4, pointRadius:0}] },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{x:{ticks:{color:'#8b949e',font:{size:9},maxTicksLimit:12},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}}}}
-  });
+function closePanel(){document.getElementById('detail-panel').classList.remove('open');}
+var chartsBuilt={health:false,analytics:false};
+var CI={};
+function buildHealthCharts(){
+  chartsBuilt.health=true;
+  var grid=cssVar('--chart-grid'),tick=cssVar('--chart-tick');
+  var labels=NODES.map(function(n){return n.hostname.replace('XA-','');}),cpuData=NODES.map(function(n){return n.cpu;}),memData=NODES.map(function(n){return n.mem;});
+  CI.cpu=new Chart(document.getElementById('chart-cpu'),{type:'bar',data:{labels:labels,datasets:[{label:'CPU %',data:cpuData,backgroundColor:cpuData.map(function(v){return utilColor(v)+'cc';}),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tick,font:{size:8}},grid:{color:grid}},y:{max:100,ticks:{color:tick},grid:{color:grid}}}}});
+  CI.mem=new Chart(document.getElementById('chart-mem'),{type:'bar',data:{labels:labels,datasets:[{label:'Memory %',data:memData,backgroundColor:memData.map(function(v){return utilColor(v)+'cc';}),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tick,font:{size:8}},grid:{color:grid}},y:{max:100,ticks:{color:tick},grid:{color:grid}}}}});
+  document.getElementById('health-table').innerHTML=NODES.map(function(n){return '<tr><td>'+n.hostname+'</td><td>'+n.role+'</td><td>'+n.isis_adj+'</td><td>'+badge(n.status)+'</td><td style="color:var(--text-muted)">Mar 4 09:00</td><td><span style="color:'+utilColor(n.cpu)+'">'+n.cpu+'%</span></td><td><span style="color:'+utilColor(n.mem)+'">'+n.mem+'%</span></td></tr>';}).join('');
+  var bl=Array.from({length:24},function(_,i){return i+':00';}),bd=bl.map(function(){return+(80+Math.random()*80).toFixed(1);});
+  CI.bum=new Chart(document.getElementById('chart-bum'),{type:'line',data:{labels:bl,datasets:[{label:'BUM Mbps',data:bd,borderColor:'#ffa657',backgroundColor:'#ffa65720',fill:true,tension:0.4,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tick,font:{size:9},maxTicksLimit:12},grid:{color:grid}},y:{ticks:{color:tick},grid:{color:grid}}}}});
 }
-
-// ==================== SERVICES ====================
-function buildServicesTable() {
-  const sel = document.getElementById('svc-tenant');
-  if (sel.options.length <= 1) {
-    [...new Set(SERVICES.map(s=>s.tenant))].forEach(t => {
-      const o=document.createElement('option'); o.value=t; o.textContent=t; sel.appendChild(o);
-    });
-  }
+function buildServicesTable(){
+  var sel=document.getElementById('svc-tenant');
+  if(sel.options.length<=1){[...new Set(SERVICES.map(function(s){return s.tenant;}))].forEach(function(t){var o=document.createElement('option');o.value=t;o.textContent=t;sel.appendChild(o);});}
   filterServices();
 }
-function filterServices() {
-  const search  = document.getElementById('svc-search').value.toLowerCase();
-  const roleF   = document.getElementById('svc-role').value;
-  const tenantF = document.getElementById('svc-tenant').value;
-  const typeF   = document.getElementById('svc-type').value;
-  let rows = SERVICES;
-  if (search)  rows = rows.filter(s => String(s.isid).includes(search)||s.name.toLowerCase().includes(search)||s.tenant.toLowerCase().includes(search)||s.vrf.toLowerCase().includes(search));
-  if (tenantF) rows = rows.filter(s => s.tenant===tenantF);
-  if (typeF)   rows = rows.filter(s => s.type===typeF);
-  if (roleF) {
-    const rids = NODES.filter(n=>n.role===roleF).map(n=>n.id);
-    rows = rows.filter(s => s.nodes.some(nid=>rids.includes(nid)));
+function filterServices(){
+  var search=document.getElementById('svc-search').value.toLowerCase();
+  var roleF=document.getElementById('svc-role').value;
+  var tenantF=document.getElementById('svc-tenant').value;
+  var typeF=document.getElementById('svc-type').value;
+  var rows=SERVICES;
+  if(search)rows=rows.filter(function(s){return String(s.isid).includes(search)||s.name.toLowerCase().includes(search)||s.tenant.toLowerCase().includes(search)||s.vrf.toLowerCase().includes(search);});
+  if(tenantF)rows=rows.filter(function(s){return s.tenant===tenantF;});
+  if(typeF)rows=rows.filter(function(s){return s.type===typeF;});
+  if(roleF){var rids=NODES.filter(function(n){return n.role===roleF;}).map(function(n){return n.id;});rows=rows.filter(function(s){return s.nodes.some(function(nid){return rids.includes(nid);});});}
+  document.getElementById('svc-table').innerHTML=rows.map(function(s){return '<tr><td style="font-family:monospace;color:var(--blue)">'+s.isid+'</td><td>'+s.name+'</td><td><span class="badge badge-blue">'+s.type+'</span></td><td>'+s.tenant+'</td><td style="font-family:monospace;font-size:11px;color:var(--text-muted)">'+s.vrf+'</td><td>'+s.nodes.length+'</td><td>'+badge(s.status)+'</td></tr>';}).join('');
+}
+function buildAnalyticsCharts(){
+  chartsBuilt.analytics=true;
+  var grid=cssVar('--chart-grid'),tick=cssVar('--chart-tick');
+  var days=['Feb 26','Feb 27','Feb 28','Mar 1','Mar 2','Mar 3','Mar 4'];
+  var rnd=function(base,range){return days.map(function(){return+(base+Math.random()*range).toFixed(1);});};
+  CI.bw=new Chart(document.getElementById('chart-bw'),{type:'line',data:{labels:days,datasets:[{label:'Inbound Gbps',data:rnd(200,150),borderColor:'#58a6ff',backgroundColor:'#58a6ff18',fill:true,tension:0.4},{label:'Outbound Gbps',data:rnd(170,130),borderColor:'#3fb950',backgroundColor:'#3fb95018',fill:true,tension:0.4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:tick,font:{size:11}}}},scales:{x:{ticks:{color:tick},grid:{color:grid}},y:{ticks:{color:tick},grid:{color:grid}}}}});
+  CI.ewns=new Chart(document.getElementById('chart-ewns'),{type:'doughnut',data:{labels:['East-West','North-South'],datasets:[{data:[68,32],backgroundColor:['#58a6ff','#bc8cff'],borderColor:'#161b22',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:tick,font:{size:12}}}}}});
+  var ul=LINKS.filter(function(l){return l.status==='up';}).sort(function(a,b){return b.util-a.util;}).slice(0,10);
+  CI.uplinks=new Chart(document.getElementById('chart-uplinks'),{type:'bar',data:{labels:ul.map(function(l){var sn=NODES.find(function(n){return n.id===l.src;}),dn=NODES.find(function(n){return n.id===l.dst;});return((sn&&sn.hostname)||l.src).replace('XA-','')+' -> '+((dn&&dn.hostname)||l.dst).replace('XA-','');}),datasets:[{label:'Util %',data:ul.map(function(l){return l.util;}),backgroundColor:ul.map(function(l){return utilColor(l.util)+'cc';}),borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{max:100,ticks:{color:tick},grid:{color:grid}},y:{ticks:{color:tick,font:{size:9}},grid:{color:grid}}}}});
+  CI.errors=new Chart(document.getElementById('chart-errors'),{type:'bar',data:{labels:days,datasets:[{label:'Errors',data:days.map(function(){return Math.floor(Math.random()*50);}),backgroundColor:'#f8514970'},{label:'Discards',data:days.map(function(){return Math.floor(Math.random()*30);}),backgroundColor:'#d2992270'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:tick,font:{size:11}}}},scales:{x:{ticks:{color:tick},grid:{color:grid}},y:{ticks:{color:tick},grid:{color:grid}}}}});
+}
+function simulateUpdates(){
+  NODES.forEach(function(n){if(n.status==='down')return;n.cpu=Math.max(5,Math.min(95,n.cpu+(Math.random()*6-3)));n.mem=Math.max(20,Math.min(90,n.mem+(Math.random()*4-2)));});
+  LINKS.forEach(function(l){if(l.status==='down')return;l.util=Math.max(5,Math.min(95,l.util+(Math.random()*8-4)));});
+  buildTopology();buildStats();
+  if(chartsBuilt.health&&CI.cpu){
+    CI.cpu.data.datasets[0].data=NODES.map(function(n){return+n.cpu.toFixed(1);});CI.cpu.data.datasets[0].backgroundColor=NODES.map(function(n){return utilColor(n.cpu)+'cc';});
+    CI.mem.data.datasets[0].data=NODES.map(function(n){return+n.mem.toFixed(1);});CI.mem.data.datasets[0].backgroundColor=NODES.map(function(n){return utilColor(n.mem)+'cc';});
+    CI.cpu.update('none');CI.mem.update('none');
   }
-  document.getElementById('svc-table').innerHTML = rows.map(s=>`
-    <tr>
-      <td style="font-family:monospace;color:var(--blue)">${s.isid}</td>
-      <td>${s.name}</td>
-      <td><span class="badge badge-blue">${s.type}</span></td>
-      <td>${s.tenant}</td>
-      <td style="font-family:monospace;font-size:11px;color:var(--text-muted)">${s.vrf}</td>
-      <td>${s.nodes.length}</td>
-      <td>${badge(s.status)}</td>
-    </tr>`).join('');
 }
-
-// ==================== ANALYTICS ====================
-function buildAnalyticsCharts() {
-  chartsBuilt.analytics = true;
-  const days = ['Feb 26','Feb 27','Feb 28','Mar 1','Mar 2','Mar 3','Mar 4'];
-  const rnd  = (base,range) => days.map(()=>+(base+Math.random()*range).toFixed(1));
-
-  CI.bw = new Chart(document.getElementById('chart-bw'), {
-    type:'line', data:{ labels:days, datasets:[
-      {label:'Inbound Gbps',  data:rnd(200,150), borderColor:'#58a6ff', backgroundColor:'#58a6ff18', fill:true, tension:0.4},
-      {label:'Outbound Gbps', data:rnd(170,130), borderColor:'#3fb950', backgroundColor:'#3fb95018', fill:true, tension:0.4}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}}},
-      scales:{x:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}}}}
-  });
-
-  CI.ewns = new Chart(document.getElementById('chart-ewns'), {
-    type:'doughnut', data:{ labels:['East-West','North-South'], datasets:[{data:[68,32], backgroundColor:['#58a6ff','#bc8cff'], borderColor:'#161b22', borderWidth:3}] },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8b949e',font:{size:12}}}}}
-  });
-
-  const uplinks = LINKS.filter(l=>l.status==='up').sort((a,b)=>b.util-a.util).slice(0,10);
-  CI.uplinks = new Chart(document.getElementById('chart-uplinks'), {
-    type:'bar',
-    data:{ labels: uplinks.map(l=>{
-      const sn=NODES.find(n=>n.id===l.src), dn=NODES.find(n=>n.id===l.dst);
-      return `${(sn?.hostname||l.src).replace('XA-','')} -> ${(dn?.hostname||l.dst).replace('XA-','')}`;
-    }), datasets:[{label:'Util %', data:uplinks.map(l=>l.util), backgroundColor:uplinks.map(l=>utilColor(l.util)+'cc'), borderWidth:0}]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{x:{max:100,ticks:{color:'#8b949e'},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e',font:{size:9}},grid:{color:'#21262d'}}}}
-  });
-
-  CI.errors = new Chart(document.getElementById('chart-errors'), {
-    type:'bar', data:{ labels:days, datasets:[
-      {label:'Errors',   data:days.map(()=>Math.floor(Math.random()*50)), backgroundColor:'#f8514970'},
-      {label:'Discards', data:days.map(()=>Math.floor(Math.random()*30)), backgroundColor:'#d2992270'}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}}},
-      scales:{x:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}},y:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}}}}
-  });
-}
-
-// ==================== SIMULATED REAL-TIME ====================
-function simulateUpdates() {
-  NODES.forEach(n => {
-    if (n.status==='down') return;
-    n.cpu = Math.max(5,  Math.min(95, n.cpu + (Math.random()*6-3)));
-    n.mem = Math.max(20, Math.min(90, n.mem + (Math.random()*4-2)));
-  });
-  LINKS.forEach(l => {
-    if (l.status==='down') return;
-    l.util = Math.max(5, Math.min(95, l.util + (Math.random()*8-4)));
-  });
+function toggleTheme(){
+  var isDark=document.getElementById('dark-toggle').checked;
+  document.documentElement.setAttribute('data-theme',isDark?'dark':'light');
+  localStorage.setItem('theme',isDark?'dark':'light');
+  chartsBuilt.health=false;chartsBuilt.analytics=false;
+  ['cpu','mem','bum','bw','ewns','uplinks','errors'].forEach(function(k){if(CI[k]){CI[k].destroy();delete CI[k];}});
   buildTopology();
-  buildStats();
-  if (chartsBuilt.health && CI.cpu) {
-    CI.cpu.data.datasets[0].data = NODES.map(n=>+n.cpu.toFixed(1));
-    CI.cpu.data.datasets[0].backgroundColor = NODES.map(n=>utilColor(n.cpu)+'cc');
-    CI.mem.data.datasets[0].data = NODES.map(n=>+n.mem.toFixed(1));
-    CI.mem.data.datasets[0].backgroundColor = NODES.map(n=>utilColor(n.mem)+'cc');
-    CI.cpu.update('none');
-    CI.mem.update('none');
-  }
+  var active=document.querySelector('.tab-content.active');
+  if(active&&active.id==='tab-health')buildHealthCharts();
+  if(active&&active.id==='tab-analytics')buildAnalyticsCharts();
 }
-
-// ==================== INIT ====================
-buildAlerts();
-buildStats();
-buildTopology();
-buildServicesTable();
-setInterval(simulateUpdates, 5000);
+var refreshTimer=setInterval(simulateUpdates,5000);
+function toggleRefresh(){
+  var on=document.getElementById('refresh-toggle').checked;
+  if(on){refreshTimer=setInterval(simulateUpdates,5000);}else{clearInterval(refreshTimer);}
+}
+(function(){
+  var saved=localStorage.getItem('theme')||'dark';
+  document.getElementById('dark-toggle').checked=saved!=='light';
+  if(saved==='light')document.documentElement.setAttribute('data-theme','light');
+})();
+buildAlerts();buildStats();buildTopology();buildServicesTable();
 </script>
 </body>
 </html>
