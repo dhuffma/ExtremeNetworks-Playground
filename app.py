@@ -97,12 +97,10 @@ def login():
 def set_token():
     data = request.get_json() or {}
     token = data.get('token', '').strip()
-    # Strip "Bearer " prefix if the user copied the full header value
     if token.lower().startswith('bearer '):
         token = token[7:].strip()
     if not token:
         return jsonify({'error': 'Token is required'}), 400
-    # Validate the token against XIQ before accepting it
     try:
         resp = req.get(
             f'{XIQ_BASE}/account/home-accounts',
@@ -130,15 +128,48 @@ def get_accounts():
     h = _headers()
     if not h:
         return jsonify({'error': 'Not authenticated'}), 401
+
+    all_accounts = []
+
+    # Fetch home accounts
     try:
         resp = req.get(f'{XIQ_BASE}/account/home-accounts', headers=h, timeout=15)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 502
-    if resp.status_code == 401:
-        return jsonify({'error': 'Session expired'}), 401
-    if resp.status_code != 200:
-        return jsonify({'data': [], 'total_count': 0}), 200
-    return jsonify(resp.json()), 200
+        if resp.status_code == 401:
+            return jsonify({'error': 'Session expired'}), 401
+        if resp.status_code == 200:
+            body = resp.json()
+            home = body.get('data', body if isinstance(body, list) else [])
+            for a in home:
+                a['_account_type'] = 'home'
+            all_accounts.extend(home)
+    except Exception:
+        pass
+
+    # Fetch managed/partner accounts
+    try:
+        page, limit = 1, 100
+        while True:
+            resp = req.get(
+                f'{XIQ_BASE}/account/managed-accounts',
+                headers=h,
+                params={'page': page, 'limit': limit},
+                timeout=15
+            )
+            if resp.status_code != 200:
+                break
+            body = resp.json()
+            managed = body.get('data', [])
+            for a in managed:
+                a['_account_type'] = 'managed'
+            all_accounts.extend(managed)
+            total = body.get('total_count', body.get('totalCount', len(managed)))
+            if len(managed) < limit or len(all_accounts) >= total + len(home if 'home' in dir() else []):
+                break
+            page += 1
+    except Exception:
+        pass
+
+    return jsonify({'data': all_accounts, 'total_count': len(all_accounts)}), 200
 
 
 @app.route('/api/select-account', methods=['POST'])
