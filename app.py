@@ -145,7 +145,7 @@ def get_accounts():
     except Exception:
         pass
 
-    # Fetch managed/partner accounts
+    # Fetch managed/partner accounts (paginated)
     try:
         page, limit = 1, 100
         while True:
@@ -163,13 +163,40 @@ def get_accounts():
                 a['_account_type'] = 'managed'
             all_accounts.extend(managed)
             total = body.get('total_count', body.get('totalCount', len(managed)))
-            if len(managed) < limit or len(all_accounts) >= total + len(home if 'home' in dir() else []):
+            if len(managed) < limit or sum(1 for a in all_accounts if a.get('_account_type') == 'managed') >= total:
                 break
             page += 1
     except Exception:
         pass
 
     return jsonify({'data': all_accounts, 'total_count': len(all_accounts)}), 200
+
+
+@app.route('/api/debug/accounts')
+def debug_accounts():
+    """Returns raw XIQ responses for all account endpoints - use to diagnose missing VIQs."""
+    h = _headers()
+    if not h:
+        return jsonify({'error': 'Not authenticated'}), 401
+
+    result = {}
+
+    endpoints = [
+        '/account/home-accounts',
+        '/account/managed-accounts',
+    ]
+
+    for path in endpoints:
+        try:
+            resp = req.get(f'{XIQ_BASE}{path}', headers=h, params={'page': 1, 'limit': 100}, timeout=15)
+            result[path] = {
+                'status': resp.status_code,
+                'body': resp.json() if resp.headers.get('content-type', '').startswith('application/json') else resp.text
+            }
+        except Exception as e:
+            result[path] = {'error': str(e)}
+
+    return jsonify(result), 200
 
 
 @app.route('/api/select-account', methods=['POST'])
