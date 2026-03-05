@@ -175,30 +175,41 @@ def get_accounts():
 
 @app.route('/api/debug/accounts')
 def debug_accounts():
-    """Probes many possible XIQ account/VIQ endpoints to find which ones work."""
+    """Probes VHM-based and other paths to find tenant/VIQ listing endpoints."""
     h = _headers()
     if not h:
         return jsonify({'error': 'Not authenticated'}), 401
 
-    candidates = [
-        '/account/home-accounts',
-        '/account/managed-accounts',
-        '/account',
-        '/account/viq',
-        '/account/accounts',
-        '/account/customers',
-        '/vhm/customers',
-        '/vhm',
-        '/xapi/v1/account/home-accounts',
-        '/xapi/v1/account/managed-accounts',
-        '/v1/account/home-accounts',
-        '/v1/account/managed-accounts',
-        '/management/viq',
-        '/tenant',
-        '/tenants',
-    ]
+    # First fetch /account/viq to get the vhm_id
+    vhm_id = None
+    try:
+        r = req.get(f'{XIQ_BASE}/account/viq', headers=h, timeout=10)
+        if r.status_code == 200:
+            vhm_id = r.json().get('vhm_id')
+    except Exception:
+        pass
 
-    result = {}
+    candidates = [
+        '/account/viq',
+        f'/vhm/{vhm_id}/customers' if vhm_id else None,
+        f'/vhm/{vhm_id}/accounts' if vhm_id else None,
+        f'/vhm/{vhm_id}/viq' if vhm_id else None,
+        f'/account/vhm/{vhm_id}/customers' if vhm_id else None,
+        f'/account/vhm/{vhm_id}' if vhm_id else None,
+        '/account/vhm',
+        '/account/switch',
+        '/account/viq/list',
+        '/account/viq/switch',
+        '/vhm/customers',
+        '/vhm/switch',
+        '/mssp/customers',
+        '/mssp/accounts',
+        '/partner/accounts',
+        '/partner/customers',
+    ]
+    candidates = [c for c in candidates if c]
+
+    result = {'vhm_id_found': vhm_id, 'probes': {}}
     for path in candidates:
         try:
             resp = req.get(
@@ -211,10 +222,10 @@ def debug_accounts():
             if 'json' in ct:
                 body = resp.json()
             else:
-                body = resp.text[:300]
-            result[path] = {'status': resp.status_code, 'body': body}
+                body = resp.text[:200]
+            result['probes'][path] = {'status': resp.status_code, 'body': body}
         except Exception as e:
-            result[path] = {'error': str(e)}
+            result['probes'][path] = {'error': str(e)}
 
     return jsonify(result), 200
 
