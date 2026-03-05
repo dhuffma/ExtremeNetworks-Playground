@@ -12,22 +12,26 @@
 *{box-sizing:border-box;margin:0;padding:0;}html,body{height:100%;}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:13px;}
 
-/* SETUP */
+/* LOGIN */
 #view-setup{display:none;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1a365d 0%,#2b6cb0 55%,#4a90d9 100%);}
 #view-setup.active{display:flex;}
-.setup-card{background:var(--surface);border-radius:16px;padding:48px 40px;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.35);}
-.setup-brand{display:flex;align-items:center;gap:12px;margin-bottom:6px;}
+.setup-card{background:var(--surface);border-radius:16px;padding:48px 40px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.setup-brand{display:flex;align-items:center;gap:12px;margin-bottom:28px;}
 .setup-brand svg{width:34px;height:34px;color:#4a90d9;flex-shrink:0;}
 .setup-brand-name{font-size:20px;font-weight:800;color:#1a365d;}
 [data-theme="dark"] .setup-brand-name{color:#58a6ff;}
-.setup-heading{font-size:17px;font-weight:700;color:var(--red);margin:22px 0 8px;}
-.setup-sub{color:var(--text-muted);font-size:13px;line-height:1.7;margin-bottom:20px;}
-.setup-steps{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:18px;}
-.step{display:flex;gap:12px;margin-bottom:12px;font-size:13px;line-height:1.6;}
-.step:last-child{margin-bottom:0;}
-.step-num{width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
-.code-block{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-family:monospace;font-size:12px;color:var(--blue);margin-top:6px;word-break:break-all;}
-.setup-note{font-size:12px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:14px;}
+.login-title{font-size:18px;font-weight:700;margin-bottom:6px;}
+.login-sub{color:var(--text-muted);font-size:13px;margin-bottom:24px;}
+.login-field{margin-bottom:16px;}
+.login-field label{display:block;font-size:12px;font-weight:600;margin-bottom:6px;color:var(--text-muted);}
+.login-field input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text);outline:none;transition:border-color .15s;}
+.login-field input:focus{border-color:var(--blue);}
+#login-error{display:none;background:#fff5f5;border:1px solid #fc8181;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#c53030;}
+[data-theme="dark"] #login-error{background:#2a1215;border-color:#6e2a2a;color:#fc8181;}
+.btn-login{width:100%;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;margin-bottom:16px;}
+.btn-login:hover:not(:disabled){background:#3a7bc8;}
+.btn-login:disabled{opacity:.6;cursor:not-allowed;}
+.setup-note{font-size:12px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:14px;line-height:1.6;}
 
 /* ACCOUNTS */
 #view-accounts{display:none;min-height:100vh;background:var(--bg);}
@@ -174,7 +178,7 @@ tbody tr:hover td{background:var(--surface2);cursor:pointer;}
 </head>
 <body>
 
-<!-- NOT CONFIGURED -->
+<!-- LOGIN -->
 <div id="view-setup">
   <div class="setup-card">
     <div class="setup-brand">
@@ -186,15 +190,21 @@ tbody tr:hover td{background:var(--surface2);cursor:pointer;}
       </svg>
       <span class="setup-brand-name">ExtremeCloudIQ Dashboard</span>
     </div>
-    <div class="setup-heading">API Token Not Configured</div>
-    <div class="setup-sub">A one-time setup is needed to connect this dashboard to your XIQ environment.</div>
-    <div class="setup-steps">
-      <div class="step"><span class="step-num">1</span><div>Log into <strong>extremecloudiq.com</strong> using your SSO account</div></div>
-      <div class="step"><span class="step-num">2</span><div>Go to <strong>Global Settings &rarr; API Token Management</strong> and generate a new token. Copy it.</div></div>
-      <div class="step"><span class="step-num">3</span><div>In your <strong>Railway project</strong>, open your service &rarr; <strong>Variables</strong> tab and add:<div class="code-block">XIQ_API_TOKEN = your-token-here</div></div></div>
-      <div class="step"><span class="step-num">4</span><div>Railway will redeploy automatically. Refresh this page when it finishes.</div></div>
+    <div class="login-title">Sign In</div>
+    <div class="login-sub">Enter your ExtremeCloudIQ credentials to continue.</div>
+    <div id="login-error"></div>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="login-username" placeholder="you@example.com" autocomplete="username"
+        onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()">
     </div>
-    <div class="setup-note">The token is stored as a server-side environment variable and is never sent to the browser.</div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn-login" id="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="setup-note">Your credentials are sent directly to ExtremeCloudIQ to obtain a session token and are never stored on this server.</div>
   </div>
 </div>
 
@@ -240,6 +250,7 @@ tbody tr:hover td{background:var(--surface2);cursor:pointer;}
       <div class="live-pill"><span class="live-dot"></span>LIVE</div>
       <span class="hdr-clock" id="clock"></span>
       <button class="btn-icon" id="refresh-btn" onclick="refreshAll()">Refresh</button>
+      <button class="btn-icon" onclick="doLogout()">Sign Out</button>
     </div>
   </header>
 
@@ -333,12 +344,43 @@ function showView(name){
 function tick(){document.getElementById('clock').textContent=new Date().toLocaleTimeString();}
 setInterval(tick,1000);tick();
 
+async function doLogin(){
+  var btn=document.getElementById('login-btn');
+  var err=document.getElementById('login-error');
+  var u=document.getElementById('login-username').value.trim();
+  var p=document.getElementById('login-password').value;
+  err.style.display='none';
+  if(!u||!p){err.textContent='Please enter your username and password.';err.style.display='block';return;}
+  btn.textContent='Signing in...';btn.disabled=true;
+  try{
+    var r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+    var d=await r.json();
+    if(!r.ok){err.textContent=d.error||'Login failed. Please try again.';err.style.display='block';return;}
+    await loadAccounts();
+  }catch(e){
+    err.textContent='Connection error. Please try again.';err.style.display='block';
+  }finally{
+    btn.textContent='Sign In';btn.disabled=false;
+  }
+}
+
+async function doLogout(){
+  stopAutoRefresh();
+  await fetch('/api/logout',{method:'POST'});
+  document.getElementById('login-username').value='';
+  document.getElementById('login-password').value='';
+  document.getElementById('login-error').style.display='none';
+  showView('setup');
+  setTimeout(function(){document.getElementById('login-username').focus();},100);
+}
+
 async function loadAccounts(){
   showView('accounts');
   document.getElementById('acct-grid').innerHTML='<div class="loading-state"><div class="loading-ring"></div> Loading VIQ instances...</div>';
   try{
     var r=await fetch('/api/accounts');
-    if(!r.ok){document.getElementById('acct-grid').innerHTML='<div class="loading-state" style="color:var(--red)">Failed to load accounts. Check your API token.</div>';return;}
+    if(r.status===401){showView('setup');return;}
+    if(!r.ok){document.getElementById('acct-grid').innerHTML='<div class="loading-state" style="color:var(--red)">Failed to load accounts.</div>';return;}
     var data=await r.json();
     var list=data.data||data.accounts||(Array.isArray(data)?data:[]);
     if(!list.length){await selectAccount(null,'Home VIQ');return;}
@@ -520,7 +562,7 @@ async function init(){
   try{
     var r=await fetch('/api/status');
     var d=await r.json();
-    if(!d.configured){showView('setup');return;}
+    if(!d.configured){showView('setup');setTimeout(function(){document.getElementById('login-username').focus();},100);return;}
     await loadAccounts();
   }catch(e){showView('setup');}
 }
