@@ -8,8 +8,12 @@ app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24).hex())
 XIQ_BASE = 'https://api.extremecloudiq.com'
 
 
+def _token():
+    return os.environ.get('XIQ_API_TOKEN', '').strip()
+
+
 def _headers():
-    token = session.get('token')
+    token = _token()
     if not token:
         return None
     return {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
@@ -35,7 +39,6 @@ def _paginate(path):
         except Exception:
             return None, 502
         if resp.status_code == 401:
-            session.clear()
             return None, 401
         if resp.status_code != 200:
             return None, resp.status_code
@@ -59,69 +62,30 @@ def static_files(path):
     return send_from_directory('public', path)
 
 
-@app.route('/api/login', methods=['POST'])
-def login():
-    data = request.get_json() or {}
-    username = data.get('username', '').strip()
-    password = data.get('password', '')
-    if not username or not password:
-        return jsonify({'error': 'Username and password are required'}), 400
-    try:
-        resp = req.post(
-            f'{XIQ_BASE}/auth/credentials',
-            json={'username': username, 'password': password},
-            timeout=15
-        )
-    except Exception as e:
-        return jsonify({'error': f'Connection error: {str(e)}'}), 502
-    if resp.status_code in (400, 401, 403):
-        return jsonify({'error': 'Invalid credentials. Check your XIQ email and password.'}), 401
-    if resp.status_code != 200:
-        return jsonify({'error': f'XIQ returned status {resp.status_code}'}), resp.status_code
-    session.clear()
-    session['token'] = resp.json().get('access_token')
-    return jsonify({'ok': True})
-
-
-@app.route('/api/logout', methods=['POST'])
-def logout():
-    session.clear()
-    return jsonify({'ok': True})
-
-
-@app.route('/api/me')
-def get_me():
-    if not session.get('token'):
-        return jsonify({'authenticated': False}), 200
-    return jsonify({
-        'authenticated': True,
-        'account_name': session.get('account_name'),
-        'owner_id': session.get('owner_id')
-    })
+@app.route('/api/status')
+def status():
+    """Check whether XIQ_API_TOKEN is configured."""
+    return jsonify({'configured': bool(_token())})
 
 
 @app.route('/api/accounts')
 def get_accounts():
     h = _headers()
     if not h:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'XIQ_API_TOKEN not configured'}), 503
     try:
         resp = req.get(f'{XIQ_BASE}/account/home-accounts', headers=h, timeout=15)
     except Exception as e:
         return jsonify({'error': str(e)}), 502
     if resp.status_code == 401:
-        session.clear()
-        return jsonify({'error': 'Session expired'}), 401
+        return jsonify({'error': 'API token is invalid or expired'}), 401
     if resp.status_code != 200:
-        # Endpoint unavailable — return empty so frontend goes straight to dashboard
         return jsonify({'data': [], 'total_count': 0}), 200
     return jsonify(resp.json()), 200
 
 
 @app.route('/api/select-account', methods=['POST'])
 def select_account():
-    if not session.get('token'):
-        return jsonify({'error': 'Not authenticated'}), 401
     data = request.get_json() or {}
     session['owner_id'] = data.get('owner_id')
     session['account_name'] = data.get('name', 'Home VIQ')
@@ -130,37 +94,30 @@ def select_account():
 
 @app.route('/api/devices')
 def get_devices():
-    if not session.get('token'):
-        return jsonify({'error': 'Not authenticated'}), 401
-    items, status = _paginate('/devices')
-    if status == 401:
-        return jsonify({'error': 'Session expired'}), 401
+    if not _token():
+        return jsonify({'error': 'XIQ_API_TOKEN not configured'}), 503
+    items, status_code = _paginate('/devices')
     if items is None:
-        return jsonify({'error': f'Failed to fetch devices (status {status})'}), status
+        return jsonify({'error': f'Failed to fetch devices (status {status_code})'}), status_code
     return jsonify({'data': items, 'total': len(items)})
 
 
 @app.route('/api/clients')
 def get_clients():
-    if not session.get('token'):
-        return jsonify({'error': 'Not authenticated'}), 401
-    # Try active clients first, fall back to all clients
-    items, status = _paginate('/clients/active')
-    if status == 401:
-        return jsonify({'error': 'Session expired'}), 401
+    if not _token():
+        return jsonify({'error': 'XIQ_API_TOKEN not configured'}), 503
+    items, status_code = _paginate('/clients/active')
     if items is None:
-        items, status = _paginate('/clients')
-        if status == 401:
-            return jsonify({'error': 'Session expired'}), 401
-        if items is None:
-            items = []
+        items, status_code = _paginate('/clients')
+    if items is None:
+        items = []
     return jsonify({'data': items, 'total': len(items)})
 
 
 @app.route('/api/alarms')
 def get_alarms():
-    if not session.get('token'):
-        return jsonify({'error': 'Not authenticated'}), 401
+    if not _token():
+        return jsonify({'error': 'XIQ_API_TOKEN not configured'}), 503
     owner_id = session.get('owner_id')
     params = {'page': 1, 'limit': 200, 'acknowledged': 'false'}
     if owner_id:
@@ -169,9 +126,6 @@ def get_alarms():
         resp = req.get(f'{XIQ_BASE}/alarms', headers=_headers(), params=params, timeout=15)
     except Exception as e:
         return jsonify({'error': str(e)}), 502
-    if resp.status_code == 401:
-        session.clear()
-        return jsonify({'error': 'Session expired'}), 401
     if resp.status_code != 200:
         return jsonify({'data': [], 'total': 0}), 200
     return jsonify(resp.json()), 200
