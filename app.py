@@ -103,8 +103,9 @@ def set_token():
         return jsonify({'error': 'Token is required'}), 400
     try:
         resp = req.get(
-            f'{XIQ_BASE}/account/home-accounts',
+            f'{XIQ_BASE}/devices',
             headers={'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'},
+            params={'page': 1, 'limit': 1},
             timeout=15
         )
     except Exception as e:
@@ -174,25 +175,44 @@ def get_accounts():
 
 @app.route('/api/debug/accounts')
 def debug_accounts():
-    """Returns raw XIQ responses for all account endpoints - use to diagnose missing VIQs."""
+    """Probes many possible XIQ account/VIQ endpoints to find which ones work."""
     h = _headers()
     if not h:
         return jsonify({'error': 'Not authenticated'}), 401
 
-    result = {}
-
-    endpoints = [
+    candidates = [
         '/account/home-accounts',
         '/account/managed-accounts',
+        '/account',
+        '/account/viq',
+        '/account/accounts',
+        '/account/customers',
+        '/vhm/customers',
+        '/vhm',
+        '/xapi/v1/account/home-accounts',
+        '/xapi/v1/account/managed-accounts',
+        '/v1/account/home-accounts',
+        '/v1/account/managed-accounts',
+        '/management/viq',
+        '/tenant',
+        '/tenants',
     ]
 
-    for path in endpoints:
+    result = {}
+    for path in candidates:
         try:
-            resp = req.get(f'{XIQ_BASE}{path}', headers=h, params={'page': 1, 'limit': 100}, timeout=15)
-            result[path] = {
-                'status': resp.status_code,
-                'body': resp.json() if resp.headers.get('content-type', '').startswith('application/json') else resp.text
-            }
+            resp = req.get(
+                f'{XIQ_BASE}{path}',
+                headers=h,
+                params={'page': 1, 'limit': 10},
+                timeout=10
+            )
+            ct = resp.headers.get('content-type', '')
+            if 'json' in ct:
+                body = resp.json()
+            else:
+                body = resp.text[:300]
+            result[path] = {'status': resp.status_code, 'body': body}
         except Exception as e:
             result[path] = {'error': str(e)}
 
