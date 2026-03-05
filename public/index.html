@@ -15,17 +15,22 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-ap
 /* LOGIN */
 #view-setup{display:none;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1a365d 0%,#2b6cb0 55%,#4a90d9 100%);}
 #view-setup.active{display:flex;}
-.setup-card{background:var(--surface);border-radius:16px;padding:48px 40px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.setup-card{background:var(--surface);border-radius:16px;padding:48px 40px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.35);}
 .setup-brand{display:flex;align-items:center;gap:12px;margin-bottom:28px;}
 .setup-brand svg{width:34px;height:34px;color:#4a90d9;flex-shrink:0;}
 .setup-brand-name{font-size:20px;font-weight:800;color:#1a365d;}
 [data-theme="dark"] .setup-brand-name{color:#58a6ff;}
-.login-title{font-size:18px;font-weight:700;margin-bottom:6px;}
-.login-sub{color:var(--text-muted);font-size:13px;margin-bottom:24px;}
+.login-tabs{display:flex;border:1px solid var(--border);border-radius:8px;margin-bottom:24px;overflow:hidden;}
+.login-tab{flex:1;padding:9px;text-align:center;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-muted);background:var(--surface2);transition:all .15s;border:none;}
+.login-tab.active{background:var(--blue);color:#fff;}
+.login-tab:first-child{border-right:1px solid var(--border);}
+.login-panel{display:none;}.login-panel.active{display:block;}
 .login-field{margin-bottom:16px;}
 .login-field label{display:block;font-size:12px;font-weight:600;margin-bottom:6px;color:var(--text-muted);}
-.login-field input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text);outline:none;transition:border-color .15s;}
-.login-field input:focus{border-color:var(--blue);}
+.login-field input,.login-field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text);outline:none;transition:border-color .15s;font-family:inherit;}
+.login-field input:focus,.login-field textarea:focus{border-color:var(--blue);}
+.login-field textarea{resize:vertical;min-height:80px;font-family:monospace;font-size:11px;}
+.login-hint{font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.6;}
 #login-error{display:none;background:#fff5f5;border:1px solid #fc8181;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#c53030;}
 [data-theme="dark"] #login-error{background:#2a1215;border-color:#6e2a2a;color:#fc8181;}
 .btn-login{width:100%;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;margin-bottom:16px;}
@@ -190,21 +195,45 @@ tbody tr:hover td{background:var(--surface2);cursor:pointer;}
       </svg>
       <span class="setup-brand-name">ExtremeCloudIQ Dashboard</span>
     </div>
-    <div class="login-title">Sign In</div>
-    <div class="login-sub">Enter your ExtremeCloudIQ credentials to continue.</div>
+
+    <div class="login-tabs">
+      <button class="login-tab active" id="tab-btn-credentials" onclick="switchLoginTab('credentials')">Username &amp; Password</button>
+      <button class="login-tab" id="tab-btn-token" onclick="switchLoginTab('token')">SSO / Paste Token</button>
+    </div>
+
     <div id="login-error"></div>
-    <div class="login-field">
-      <label>Username</label>
-      <input type="text" id="login-username" placeholder="you@example.com" autocomplete="username"
-        onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()">
+
+    <!-- Credentials panel -->
+    <div class="login-panel active" id="login-panel-credentials">
+      <div class="login-field">
+        <label>Username</label>
+        <input type="text" id="login-username" placeholder="you@example.com" autocomplete="username"
+          onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()">
+      </div>
+      <div class="login-field">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn-login" id="login-btn-creds" onclick="doLogin()">Sign In</button>
     </div>
-    <div class="login-field">
-      <label>Password</label>
-      <input type="password" id="login-password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="current-password"
-        onkeydown="if(event.key==='Enter')doLogin()">
+
+    <!-- Token panel -->
+    <div class="login-panel" id="login-panel-token">
+      <div class="login-field">
+        <label>Bearer Token</label>
+        <textarea id="login-token" placeholder="Paste your Bearer token here..."></textarea>
+        <div class="login-hint">
+          Log into <strong>extremecloudiq.com</strong> via SSO, then open browser DevTools
+          (F12) &rarr; Network tab &rarr; click any API request &rarr; copy the
+          <strong>Authorization</strong> header value. You can paste the full
+          <code>Bearer eyJ...</code> string or just the token itself.
+        </div>
+      </div>
+      <button class="btn-login" id="login-btn-token" onclick="doSetToken()">Connect</button>
     </div>
-    <button class="btn-login" id="login-btn" onclick="doLogin()">Sign In</button>
-    <div class="setup-note">Your credentials are sent directly to ExtremeCloudIQ to obtain a session token and are never stored on this server.</div>
+
+    <div class="setup-note">Your credentials are sent directly to ExtremeCloudIQ and are never stored on this server.</div>
   </div>
 </div>
 
@@ -341,26 +370,60 @@ function showView(name){
   document.getElementById('view-dashboard').classList.toggle('active',name==='dashboard');
 }
 
+function switchLoginTab(name){
+  document.getElementById('tab-btn-credentials').classList.toggle('active',name==='credentials');
+  document.getElementById('tab-btn-token').classList.toggle('active',name==='token');
+  document.getElementById('login-panel-credentials').classList.toggle('active',name==='credentials');
+  document.getElementById('login-panel-token').classList.toggle('active',name==='token');
+  document.getElementById('login-error').style.display='none';
+  setTimeout(function(){
+    if(name==='credentials')document.getElementById('login-username').focus();
+    else document.getElementById('login-token').focus();
+  },50);
+}
+
+function showLoginError(msg){
+  var e=document.getElementById('login-error');
+  e.textContent=msg;e.style.display='block';
+}
+
 function tick(){document.getElementById('clock').textContent=new Date().toLocaleTimeString();}
 setInterval(tick,1000);tick();
 
 async function doLogin(){
-  var btn=document.getElementById('login-btn');
-  var err=document.getElementById('login-error');
+  var btn=document.getElementById('login-btn-creds');
   var u=document.getElementById('login-username').value.trim();
   var p=document.getElementById('login-password').value;
-  err.style.display='none';
-  if(!u||!p){err.textContent='Please enter your username and password.';err.style.display='block';return;}
+  document.getElementById('login-error').style.display='none';
+  if(!u||!p){showLoginError('Please enter your username and password.');return;}
   btn.textContent='Signing in...';btn.disabled=true;
   try{
     var r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
     var d=await r.json();
-    if(!r.ok){err.textContent=d.error||'Login failed. Please try again.';err.style.display='block';return;}
+    if(!r.ok){showLoginError(d.error||'Login failed. Please try again.');return;}
     await loadAccounts();
   }catch(e){
-    err.textContent='Connection error. Please try again.';err.style.display='block';
+    showLoginError('Connection error. Please try again.');
   }finally{
     btn.textContent='Sign In';btn.disabled=false;
+  }
+}
+
+async function doSetToken(){
+  var btn=document.getElementById('login-btn-token');
+  var t=document.getElementById('login-token').value.trim();
+  document.getElementById('login-error').style.display='none';
+  if(!t){showLoginError('Please paste your Bearer token.');return;}
+  btn.textContent='Validating...';btn.disabled=true;
+  try{
+    var r=await fetch('/api/set-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});
+    var d=await r.json();
+    if(!r.ok){showLoginError(d.error||'Token rejected. Please check and try again.');return;}
+    await loadAccounts();
+  }catch(e){
+    showLoginError('Connection error. Please try again.');
+  }finally{
+    btn.textContent='Connect';btn.disabled=false;
   }
 }
 
@@ -369,7 +432,9 @@ async function doLogout(){
   await fetch('/api/logout',{method:'POST'});
   document.getElementById('login-username').value='';
   document.getElementById('login-password').value='';
+  document.getElementById('login-token').value='';
   document.getElementById('login-error').style.display='none';
+  switchLoginTab('credentials');
   showView('setup');
   setTimeout(function(){document.getElementById('login-username').focus();},100);
 }
